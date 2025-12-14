@@ -3,6 +3,7 @@ package app
 import (
 	"net/http"
 
+	"github.com/Alkush-Pipania/carter-go/internal/modules/user"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -23,9 +24,9 @@ func NewRouter(container *Container) http.Handler {
 		w.Write([]byte("OK"))
 	})
 
-	// r.Route("/api/v1", func(v1Routes chi.Router){
-	// 	v1Routes.Mount("/users", user.Routes())
-	// })
+	r.Route("/api/v1", func(v1Routes chi.Router){
+		v1Routes.Mount("/users", user.Routes(container.userHandler))
+	})
 	return r
 
 }

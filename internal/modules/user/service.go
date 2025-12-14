@@ -2,15 +2,15 @@ package user
 
 import "context"
 
-type Service interface {
-	GetUserByID(context.Context, int) (User, error)
+type Repository interface {
+	GetUserByID(context.Context, string) (User, error)
 }
 
 type service struct {
 	repo Repository
 }
 
-func (s *service) GetUserByID(ctx context.Context, id int) (User, error) {
+func (s *service) GetUserByID(ctx context.Context, id string) (User, error) {
 	return s.repo.GetUserByID(ctx, id)
 }
 

@@ -5,62 +5,201 @@
 package db
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type FallbackImage struct {
-	ID     int32
-	Imgurl string
+type ChatRole string
+
+const (
+	ChatRoleUser      ChatRole = "user"
+	ChatRoleAssistant ChatRole = "assistant"
+)
+
+func (e *ChatRole) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ChatRole(s)
+	case string:
+		*e = ChatRole(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ChatRole: %T", src)
+	}
+	return nil
 }
 
-type Folder struct {
-	ID        int32
-	Name      string
-	SecretKey pgtype.UUID
-	UserID    int32
-	IsDeleted bool
-	DeletedAt pgtype.Timestamptz
+type NullChatRole struct {
+	ChatRole ChatRole
+	Valid    bool // Valid is true if ChatRole is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullChatRole) Scan(value interface{}) error {
+	if value == nil {
+		ns.ChatRole, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ChatRole.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullChatRole) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ChatRole), nil
+}
+
+type SourceStatus string
+
+const (
+	SourceStatusPending    SourceStatus = "pending"
+	SourceStatusProcessing SourceStatus = "processing"
+	SourceStatusIndexed    SourceStatus = "indexed"
+	SourceStatusFailed     SourceStatus = "failed"
+)
+
+func (e *SourceStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SourceStatus(s)
+	case string:
+		*e = SourceStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SourceStatus: %T", src)
+	}
+	return nil
+}
+
+type NullSourceStatus struct {
+	SourceStatus SourceStatus
+	Valid        bool // Valid is true if SourceStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSourceStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.SourceStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SourceStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSourceStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SourceStatus), nil
+}
+
+type SourceType string
+
+const (
+	SourceTypeLink SourceType = "link"
+	SourceTypePdf  SourceType = "pdf"
+	SourceTypePpt  SourceType = "ppt"
+	SourceTypeDoc  SourceType = "doc"
+	SourceTypeNote SourceType = "note"
+)
+
+func (e *SourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SourceType(s)
+	case string:
+		*e = SourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SourceType: %T", src)
+	}
+	return nil
+}
+
+type NullSourceType struct {
+	SourceType SourceType
+	Valid      bool // Valid is true if SourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.SourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SourceType), nil
+}
+
+type ChatMessage struct {
+	ID        pgtype.UUID
+	SessionID pgtype.UUID
+	Role      ChatRole
+	Content   string
 	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
 }
 
-type ForgotPassword struct {
-	ID      pgtype.UUID
-	Email   string
-	Token   string
-	Expires pgtype.Timestamptz
+type ChatSession struct {
+	ID        pgtype.UUID
+	UserID    pgtype.UUID
+	Title     string
+	CreatedAt pgtype.Timestamptz
 }
 
-type Linkform struct {
-	SecretID    pgtype.UUID
-	Title       string
-	Description string
-	Links       string
-	Body        pgtype.Text
-	Imgurl      pgtype.Text
-	Tobefind    bool
-	UserID      int32
-	FolderID    pgtype.Int4
-	IsDeleted   bool
-	DeletedAt   pgtype.Timestamptz
+type Collection struct {
+	ID        pgtype.UUID
+	UserID    pgtype.UUID
+	Name      string
+	CreatedAt pgtype.Timestamptz
+}
+
+type PasswordReset struct {
+	ID        pgtype.UUID
+	UserID    pgtype.UUID
+	Token     string
+	ExpiresAt pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
+}
+
+type Source struct {
+	ID           pgtype.UUID
+	UserID       pgtype.UUID
+	CollectionID pgtype.UUID
+	Type         SourceType
+	Status       SourceStatus
+	Title        string
+	OriginalUrl  pgtype.Text
+	S3Bucket     pgtype.Text
+	S3Key        pgtype.Text
+	ContentHash  pgtype.Text
+	CreatedAt    pgtype.Timestamptz
+}
+
+type SourceContent struct {
+	ID          pgtype.UUID
+	SourceID    pgtype.UUID
+	ContentText string
+	ContentHash string
 	CreatedAt   pgtype.Timestamptz
 }
 
 type User struct {
-	ID        int32
-	Email     string
-	Username  pgtype.Text
-	Image     pgtype.Text
-	Password  string
-	Secretkey pgtype.UUID
-	Verified  bool
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
-}
-
-type Verification struct {
-	ID      pgtype.UUID
-	Email   string
-	Token   string
-	Expires pgtype.Timestamptz
+	ID           pgtype.UUID
+	Email        string
+	Username     pgtype.Text
+	ImageUrl     pgtype.Text
+	PasswordHash string
+	Verified     bool
+	CreatedAt    pgtype.Timestamptz
 }

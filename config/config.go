@@ -21,8 +21,8 @@ func LoadEnv() *Config {
 	}
 
 	return &Config{
-		Port:  getkey("Port", "8080"),
-		DbUrl: getkey("DbUrl", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"),
+		Port:  getkey("PORT", "8080"),
+		DbUrl: getkey("DB_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"),
 		Env:   getkey("ENV", "development"),
 	}
 
