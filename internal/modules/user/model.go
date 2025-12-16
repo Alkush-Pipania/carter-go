@@ -1,6 +1,10 @@
 package user
 
-import "time"
+import (
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
+)
 
 type User struct {
 	ID        string
@@ -10,4 +14,10 @@ type User struct {
 	Password  string
 	Verified  bool
 	CreatedAt time.Time
+}
+
+type InputCreateUser struct {
+	Email        string
+	Username     pgtype.Text
+	PasswordHash string
 }
