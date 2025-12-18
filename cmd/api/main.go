@@ -2,37 +2,50 @@ package main
 
 import (
 	"context"
-	"log"
 
 	"github.com/Alkush-Pipania/carter-go/config"
 	"github.com/Alkush-Pipania/carter-go/internal/app"
 	"github.com/Alkush-Pipania/carter-go/internal/server"
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
+	"github.com/Alkush-Pipania/carter-go/pkg/logger"
+	"github.com/Alkush-Pipania/carter-go/pkg/utils"
+	"go.uber.org/zap"
 )
 
 func main() {
-
 	cfg := config.LoadEnv()
+
+	logger.Init(logger.Config{
+		Env:   cfg.Env,
+		Level: cfg.LogLevel,
+	})
+	defer logger.Sync()
+
+	logger.Info("Starting application",
+		zap.String("env", cfg.Env),
+		zap.String("log_level", cfg.LogLevel),
+	)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// initalize DB
 	dbConn := db.Init(ctx, cfg.DbUrl)
+	logger.Info("Database connected")
 
 	q := db.New(dbConn)
 
-	container := app.NewContainer(ctx, q)
+	jwt := utils.NewJwtservice(cfg.JwtSecret)
 
-	// initialize the router
+	container := app.NewContainer(ctx, q, jwt)
+
 	router := app.NewRouter(container)
 
-	// configure the server
 	srv := server.New(router, cfg.Port)
 
-	// start the server
-	err := srv.ListenAndServe()
+	logger.Info("Server starting", zap.String("port", cfg.Port))
 
+	err := srv.ListenAndServe()
 	if err != nil {
-		log.Fatalf("Server failed to start:", err)
+		logger.Fatal("Server failed to start", zap.Error(err))
 	}
 }

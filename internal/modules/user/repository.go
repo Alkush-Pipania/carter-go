@@ -15,22 +15,22 @@ func NewRepository(db *db.Queries) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) GetUserByID(ctx context.Context, id string) (User, error) {
-	var uuid pgtype.UUID
-	if err := uuid.Scan(id); err != nil {
-		return User{}, err
-	}
-	user, err := r.db.GetUserById(ctx, uuid)
+func (r *repository) GetUserByID(ctx context.Context, id pgtype.UUID) (db.User, error) {
+	user, err := r.db.GetUserById(ctx, id)
 	if err != nil {
-		return User{}, err
+		return db.User{}, err
 	}
-	return User{
-		ID:        user.ID.String(),
-		Email:     user.Email,
-		Username:  user.Username.String,
-		Image:     user.ImageUrl.String,
-		Password:  user.PasswordHash,
-		Verified:  user.Verified,
-		CreatedAt: user.CreatedAt.Time,
-	}, nil
+	return user, nil
+}
+
+func (r *repository) CreateUser(ctx context.Context, user InputCreateUser) error {
+	_, err := r.db.CreateUser(ctx, db.CreateUserParams{
+		Email:        user.Email,
+		Username:     user.Username,
+		PasswordHash: user.PasswordHash,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

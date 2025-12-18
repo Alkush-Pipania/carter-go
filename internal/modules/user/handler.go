@@ -10,6 +10,7 @@ import (
 
 type Service interface {
 	GetUserByID(context.Context, string) (User, error)
+	CreateUser(context.Context, InputCreateUser) error
 }
 
 type UserHandler struct {
@@ -35,7 +36,6 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		Username:  user.Username,
 		Email:     user.Email,
 		Image:     user.Image,
-		Password:  user.Password,
 		Verified:  user.Verified,
 		CreatedAt: user.CreatedAt,
 	}
