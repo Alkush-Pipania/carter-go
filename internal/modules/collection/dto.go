@@ -13,6 +13,14 @@ type CollectionResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type CreateCollectionRequest struct {
+	Name string `json:"name"`
+}
+
+type UpdateCollectionRequest struct {
+	Name string `json:"name"`
+}
+
 func ToCollectionResponse(c db.Collection) CollectionResponse {
 	return CollectionResponse{
 		ID:        uuidToString(c.ID),

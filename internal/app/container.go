@@ -8,13 +8,18 @@ import (
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
 )
 
+type JWTVerifier interface {
+	Verify(token string) (string, error)
+}
+
 type Container struct {
 	DB                *db.Queries
 	userHandler       *user.UserHandler
 	collectionHandler *collection.Handler
+	jwt               JWTVerifier
 }
 
-func NewContainer(ctx context.Context, db *db.Queries) *Container {
+func NewContainer(ctx context.Context, db *db.Queries, jwt JWTVerifier) *Container {
 	userRepo := user.NewRepository(db)
 	userService := user.NewService(userRepo)
 	userHandler := user.NewUserHandler(userService)
@@ -27,5 +32,6 @@ func NewContainer(ctx context.Context, db *db.Queries) *Container {
 		DB:                db,
 		userHandler:       userHandler,
 		collectionHandler: collectionHandler,
+		jwt:               jwt,
 	}
 }

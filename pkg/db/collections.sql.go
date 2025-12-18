@@ -11,6 +11,39 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createCollection = `-- name: CreateCollection :one
+INSERT INTO collections (user_id, name)
+VALUES ($1, $2)
+RETURNING id, user_id, name, created_at
+`
+
+type CreateCollectionParams struct {
+	UserID pgtype.UUID
+	Name   string
+}
+
+func (q *Queries) CreateCollection(ctx context.Context, arg CreateCollectionParams) (Collection, error) {
+	row := q.db.QueryRow(ctx, createCollection, arg.UserID, arg.Name)
+	var i Collection
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const deleteCollection = `-- name: DeleteCollection :exec
+DELETE FROM collections
+WHERE id = $1
+`
+
+func (q *Queries) DeleteCollection(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteCollection, id)
+	return err
+}
+
 const getCollectionsByUserID = `-- name: GetCollectionsByUserID :many
 SELECT id, user_id, name, created_at FROM collections WHERE user_id = $1
 `
@@ -38,4 +71,28 @@ func (q *Queries) GetCollectionsByUserID(ctx context.Context, userID pgtype.UUID
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateCollection = `-- name: UpdateCollection :one
+UPDATE collections
+SET name = $2
+WHERE id = $1
+RETURNING id, user_id, name, created_at
+`
+
+type UpdateCollectionParams struct {
+	ID   pgtype.UUID
+	Name string
+}
+
+func (q *Queries) UpdateCollection(ctx context.Context, arg UpdateCollectionParams) (Collection, error) {
+	row := q.db.QueryRow(ctx, updateCollection, arg.ID, arg.Name)
+	var i Collection
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.CreatedAt,
+	)
+	return i, err
 }

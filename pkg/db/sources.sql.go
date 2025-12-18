@@ -11,6 +11,113 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createSource = `-- name: CreateSource :one
+INSERT INTO sources (user_id, collection_id, type, title, original_url)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at
+`
+
+type CreateSourceParams struct {
+	UserID       pgtype.UUID
+	CollectionID pgtype.UUID
+	Type         SourceType
+	Title        string
+	OriginalUrl  pgtype.Text
+}
+
+func (q *Queries) CreateSource(ctx context.Context, arg CreateSourceParams) (Source, error) {
+	row := q.db.QueryRow(ctx, createSource,
+		arg.UserID,
+		arg.CollectionID,
+		arg.Type,
+		arg.Title,
+		arg.OriginalUrl,
+	)
+	var i Source
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CollectionID,
+		&i.Type,
+		&i.Status,
+		&i.Title,
+		&i.OriginalUrl,
+		&i.S3Bucket,
+		&i.S3Key,
+		&i.ContentHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const deleteSource = `-- name: DeleteSource :exec
+DELETE FROM sources WHERE id = $1
+`
+
+func (q *Queries) DeleteSource(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteSource, id)
+	return err
+}
+
+const getSourceByID = `-- name: GetSourceByID :one
+SELECT id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at FROM sources WHERE id = $1
+`
+
+func (q *Queries) GetSourceByID(ctx context.Context, id pgtype.UUID) (Source, error) {
+	row := q.db.QueryRow(ctx, getSourceByID, id)
+	var i Source
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CollectionID,
+		&i.Type,
+		&i.Status,
+		&i.Title,
+		&i.OriginalUrl,
+		&i.S3Bucket,
+		&i.S3Key,
+		&i.ContentHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getSourcesByCollectionID = `-- name: GetSourcesByCollectionID :many
+SELECT id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at FROM sources WHERE collection_id = $1
+`
+
+func (q *Queries) GetSourcesByCollectionID(ctx context.Context, collectionID pgtype.UUID) ([]Source, error) {
+	rows, err := q.db.Query(ctx, getSourcesByCollectionID, collectionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Source
+	for rows.Next() {
+		var i Source
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.CollectionID,
+			&i.Type,
+			&i.Status,
+			&i.Title,
+			&i.OriginalUrl,
+			&i.S3Bucket,
+			&i.S3Key,
+			&i.ContentHash,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSourcesByUserID = `-- name: GetSourcesByUserID :many
 SELECT id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at FROM sources WHERE user_id = $1
 `
@@ -45,4 +152,33 @@ func (q *Queries) GetSourcesByUserID(ctx context.Context, userID pgtype.UUID) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateSourceStatus = `-- name: UpdateSourceStatus :one
+UPDATE sources SET status = $2 WHERE id = $1
+RETURNING id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at
+`
+
+type UpdateSourceStatusParams struct {
+	ID     pgtype.UUID
+	Status SourceStatus
+}
+
+func (q *Queries) UpdateSourceStatus(ctx context.Context, arg UpdateSourceStatusParams) (Source, error) {
+	row := q.db.QueryRow(ctx, updateSourceStatus, arg.ID, arg.Status)
+	var i Source
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CollectionID,
+		&i.Type,
+		&i.Status,
+		&i.Title,
+		&i.OriginalUrl,
+		&i.S3Bucket,
+		&i.S3Key,
+		&i.ContentHash,
+		&i.CreatedAt,
+	)
+	return i, err
 }

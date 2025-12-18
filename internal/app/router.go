@@ -3,6 +3,7 @@ package app
 import (
 	"net/http"
 
+	middl "github.com/Alkush-Pipania/carter-go/internal/middleware"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/collection"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/user"
 	"github.com/go-chi/chi/v5"
@@ -20,9 +21,12 @@ func NewRouter(container *Container) http.Handler {
 		w.Write([]byte("OK"))
 	})
 
-	r.Route("/api/v1", func(v1Routes chi.Router) {
-		v1Routes.Mount("/users", user.Routes(container.userHandler))
-		v1Routes.Mount("/collections", collection.Routes(container.collectionHandler))
+	r.Group(func(r chi.Router){
+		r.Use(middl.AuthMiddleware(container.jwt))
+		r.Route("/api/v1", func(v1Routes chi.Router) {
+			v1Routes.Mount("/users", user.Routes(container.userHandler))
+			v1Routes.Mount("/collections", collection.Routes(container.collectionHandler))
+		})
 	})
 
 	return r
