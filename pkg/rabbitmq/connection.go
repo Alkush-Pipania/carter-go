@@ -96,6 +96,11 @@ func (c *Connection) reconnect(cfg ConnectionConfig) {
 
 		conn, err := amqp.Dial(cfg.URL)
 		if err == nil {
+			// Close the previous onClose channel to avoid leaking goroutines
+			oldOnClose := c.onClose
+			if oldOnClose != nil {
+				close(oldOnClose)
+			}
 			c.conn = conn
 			c.onClose = make(chan *amqp.Error)
 			conn.NotifyClose(c.onClose)
