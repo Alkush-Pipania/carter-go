@@ -4,8 +4,10 @@ import (
 	"context"
 
 	"github.com/Alkush-Pipania/carter-go/internal/modules/collection"
+	"github.com/Alkush-Pipania/carter-go/internal/modules/source"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/user"
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
+	"github.com/Alkush-Pipania/carter-go/pkg/rabbitmq"
 )
 
 type JWTVerifier interface {
@@ -17,9 +19,10 @@ type Container struct {
 	userHandler       *user.UserHandler
 	collectionHandler *collection.Handler
 	jwt               JWTVerifier
+	sourceHandler     *source.Handler
 }
 
-func NewContainer(ctx context.Context, db *db.Queries, jwt JWTVerifier) *Container {
+func NewContainer(ctx context.Context, db *db.Queries, jwt JWTVerifier, producer *rabbitmq.Producer) *Container {
 	userRepo := user.NewRepository(db)
 	userService := user.NewService(userRepo)
 	userHandler := user.NewUserHandler(userService)
@@ -28,10 +31,16 @@ func NewContainer(ctx context.Context, db *db.Queries, jwt JWTVerifier) *Contain
 	collectionService := collection.NewService(collectionRepo)
 	collectionHandler := collection.NewHandler(collectionService)
 
+	// Source module with RabbitMQ producer for embedding queue
+	sourceRepo := source.NewRepository(db)
+	sourceService := source.NewService(sourceRepo, producer)
+	sourceHandler := source.NewHandler(sourceService)
+
 	return &Container{
 		DB:                db,
 		userHandler:       userHandler,
 		collectionHandler: collectionHandler,
+		sourceHandler:     sourceHandler,
 		jwt:               jwt,
 	}
 }
