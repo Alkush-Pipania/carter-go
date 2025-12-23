@@ -108,7 +108,9 @@ func (c *Connection) reconnect(cfg ConnectionConfig) {
 			zap.Duration("retry_in", delay))
 
 		if cfg.MaxReconnects > 0 && attempts >= cfg.MaxReconnects {
-			c.logger.Fatal("Max reconnection attempts reached")
+			c.logger.Error("Max reconnection attempts reached",
+				zap.Int("attempts", attempts))
+			c.closed = true
 			return
 		}
 
