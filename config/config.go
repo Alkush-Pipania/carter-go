@@ -16,6 +16,10 @@ type Config struct {
 	LogLevel    string
 	RabbitMQUrl string
 	QueueName   string
+	// S3 Configuration
+	AWSRegion     string
+	S3BucketName  string
+	PresignExpiry int // in minutes
 }
 
 func LoadEnv() *Config {
@@ -25,13 +29,16 @@ func LoadEnv() *Config {
 	}
 
 	return &Config{
-		Port:        getkey("PORT", "8080"),
-		DbUrl:       getkey("DB_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"),
-		Env:         getkey("ENV", "development"),
-		JwtSecret:   getkey("JWT_SECRET", "secret"),
-		LogLevel:    getkey("LOG_LEVEL", "info"),
-		RabbitMQUrl: getkey("RABBITMQ_URL", "amqp://guest:guest@localhost:5672"),
-		QueueName:   getkey("QUEUE_NAME", "carter_queue"),
+		Port:          getkey("PORT", "8080"),
+		DbUrl:         getkey("DB_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"),
+		Env:           getkey("ENV", "development"),
+		JwtSecret:     getkey("JWT_SECRET", "secret"),
+		LogLevel:      getkey("LOG_LEVEL", "info"),
+		RabbitMQUrl:   getkey("RABBITMQ_URL", "amqp://guest:guest@localhost:5672"),
+		QueueName:     getkey("QUEUE_NAME", "carter_queue"),
+		AWSRegion:     getkey("AWS_REGION", "us-east-1"),
+		S3BucketName:  getkey("S3_BUCKET_NAME", "carter-sources"),
+		PresignExpiry: getEnvValue(getkey("PRESIGN_EXPIRY", "15"), 15),
 	}
 
 }

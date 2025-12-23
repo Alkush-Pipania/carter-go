@@ -50,6 +50,45 @@ func (q *Queries) CreateSource(ctx context.Context, arg CreateSourceParams) (Sou
 	return i, err
 }
 
+const createSourceWithS3Key = `-- name: CreateSourceWithS3Key :one
+INSERT INTO sources (user_id, collection_id, type, title, s3_key)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at
+`
+
+type CreateSourceWithS3KeyParams struct {
+	UserID       pgtype.UUID
+	CollectionID pgtype.UUID
+	Type         SourceType
+	Title        string
+	S3Key        pgtype.Text
+}
+
+func (q *Queries) CreateSourceWithS3Key(ctx context.Context, arg CreateSourceWithS3KeyParams) (Source, error) {
+	row := q.db.QueryRow(ctx, createSourceWithS3Key,
+		arg.UserID,
+		arg.CollectionID,
+		arg.Type,
+		arg.Title,
+		arg.S3Key,
+	)
+	var i Source
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CollectionID,
+		&i.Type,
+		&i.Status,
+		&i.Title,
+		&i.OriginalUrl,
+		&i.S3Bucket,
+		&i.S3Key,
+		&i.ContentHash,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const deleteSource = `-- name: DeleteSource :exec
 DELETE FROM sources WHERE id = $1
 `
