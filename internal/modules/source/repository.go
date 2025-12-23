@@ -23,6 +23,10 @@ func (r *repository) CreateSource(ctx context.Context, args db.CreateSourceParam
 	return r.db.CreateSource(ctx, args)
 }
 
+func (r *repository) CreateSourceWithS3Key(ctx context.Context, args db.CreateSourceWithS3KeyParams) (db.Source, error) {
+	return r.db.CreateSourceWithS3Key(ctx, args)
+}
+
 func (r *repository) UpdateSourceStatus(ctx context.Context, args db.UpdateSourceStatusParams) (db.Source, error) {
 	return r.db.UpdateSourceStatus(ctx, args)
 }

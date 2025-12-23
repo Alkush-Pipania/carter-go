@@ -48,3 +48,44 @@ func ToSourceResponses(sources []db.Source) []SourceResponse {
 	}
 	return responses
 }
+
+// PresignUploadRequest represents a request for a presigned upload URL
+type PresignUploadRequest struct {
+	Filename     string `json:"filename"`
+	ContentType  string `json:"content_type"`
+	CollectionID string `json:"collection_id"`
+	Title        string `json:"title"`
+}
+
+// PresignUploadResponse contains the presigned URL and source info
+type PresignUploadResponse struct {
+	SourceID  string    `json:"source_id"`
+	UploadURL string    `json:"upload_url"`
+	S3Key     string    `json:"s3_key"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+// ConfirmUploadRequest for confirming an upload is complete
+type ConfirmUploadRequest struct {
+	SourceID string `json:"source_id"`
+}
+
+// AllowedContentTypes maps file extensions to MIME types
+var AllowedContentTypes = map[string]string{
+	"application/pdf":               "pdf",
+	"application/vnd.ms-powerpoint": "ppt",
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation": "ppt",
+	"application/msword": "doc",
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document": "doc",
+}
+
+// IsAllowedContentType checks if the content type is allowed for upload
+func IsAllowedContentType(contentType string) bool {
+	_, ok := AllowedContentTypes[contentType]
+	return ok
+}
+
+// GetSourceTypeFromContentType returns the source type for a content type
+func GetSourceTypeFromContentType(contentType string) string {
+	return AllowedContentTypes[contentType]
+}
