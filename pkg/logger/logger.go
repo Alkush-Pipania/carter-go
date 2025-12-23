@@ -81,6 +81,11 @@ func Sync() {
 	}
 }
 
+// Get returns the global logger instance
+func Get() *zap.Logger {
+	return Log
+}
+
 // WithContext returns a logger with contextual fields from context
 func WithContext(ctx context.Context) *zap.Logger {
 	logger := Log

@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type handler struct {
+type Handler struct {
 	service Service
 }
 
@@ -19,13 +19,13 @@ type Service interface {
 	CreateSource(ctx context.Context, userID string, req CreateSourceRequest) (db.Source, error)
 }
 
-func NewHandler(svc Service) *handler {
-	return &handler{
+func NewHandler(svc Service) *Handler {
+	return &Handler{
 		service: svc,
 	}
 }
 
-func (h *handler) GetSourcesByCollectionID(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetSourcesByCollectionID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	collectionID := chi.URLParam(r, "id")
 	if collectionID == "" {
@@ -41,7 +41,7 @@ func (h *handler) GetSourcesByCollectionID(w http.ResponseWriter, r *http.Reques
 	response.WriteJSON(w, http.StatusOK, ToSourceResponses(sources))
 }
 
-func (h *handler) CreateSource(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateSource(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	userID := r.Header.Get("user_id")
 	if userID == "" {

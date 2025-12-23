@@ -2,8 +2,10 @@ package source
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
+	"github.com/Alkush-Pipania/carter-go/pkg/rabbitmq"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -14,12 +16,14 @@ type Repository interface {
 }
 
 type service struct {
-	repo Repository
+	repo     Repository
+	producer *rabbitmq.Producer
 }
 
-func NewService(repo Repository) Service {
+func NewService(repo Repository, producer *rabbitmq.Producer) Service {
 	return &service{
-		repo: repo,
+		repo:     repo,
+		producer: producer,
 	}
 }
 
@@ -43,6 +47,9 @@ func (s *service) CreateSource(ctx context.Context, userID string, req CreateSou
 	}
 
 	sourceType := db.SourceType(req.Type)
+	if sourceType != "link" {
+		return db.Source{}, errors.New("invalid source type")
+	}
 
 	var originalUrl pgtype.Text
 	if req.OriginalUrl != "" {
