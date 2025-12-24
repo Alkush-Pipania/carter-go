@@ -39,3 +39,7 @@ func AuthMiddleware(authService AuthService) func(http.Handler) http.Handler {
 		})
 	}
 }
+
+func ValidateSession() {
+
+}

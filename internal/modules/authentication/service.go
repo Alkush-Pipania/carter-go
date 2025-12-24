@@ -6,7 +6,7 @@ import (
 
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
 	"github.com/Alkush-Pipania/carter-go/pkg/redis"
-	"github.com/google/uuid"
+	"github.com/Alkush-Pipania/carter-go/pkg/utils/toolchain"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -19,19 +19,19 @@ type Repository interface {
 	GetSession(ctx context.Context, sessionID pgtype.UUID) (*db.Session, error)
 }
 
-type service struct {
+type Service struct {
 	repo  Repository
 	redis *redis.Client
 }
 
-func NewService(repository Repository, redis *redis.Client) *service {
-	return &service{
+func NewService(repository Repository, redis *redis.Client) *Service {
+	return &Service{
 		repo:  repository,
 		redis: redis,
 	}
 }
 
-func (s *service) Login(ctx context.Context, email string, password string) (*LoginResponse, error) {
+func (s *Service) Login(ctx context.Context, email string, password string) (*LoginResponse, error) {
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
 		return nil, ErrInvalidCredentials
@@ -55,15 +55,24 @@ func (s *service) Login(ctx context.Context, email string, password string) (*Lo
 	}, nil
 }
 
-func (s *service) Logout(ctx context.Context, sessionID string) error {
-	parsedID, err := parseUUID(sessionID)
+func (s *Service) Logout(ctx context.Context, sessionID string) error {
+	parsedID, err := toolchain.ParseUUID(sessionID)
 	if err != nil {
 		return err
 	}
-	return s.repo.RevokeSession(ctx, parsedID)
+
+	// 1. Revoke in DB (source of truth)
+	if err := s.repo.RevokeSession(ctx, parsedID); err != nil {
+		return err
+	}
+
+	// 2. Best-effort delete from Redis (cache)
+	_ = s.redis.DeleteSession(ctx, sessionID)
+
+	return nil
 }
 
-func (s *service) Register(ctx context.Context, password string, email string) error {
+func (s *Service) Register(ctx context.Context, password string, email string) error {
 	hash, err := hashPassword(password)
 	if err != nil {
 		return err
@@ -76,14 +85,14 @@ func (s *service) Register(ctx context.Context, password string, email string) e
 	return err
 }
 
-func (s *service) ValidateSession(ctx context.Context, sessionID string) (string, error) {
+func (s *Service) ValidateSession(ctx context.Context, sessionID string) (string, error) {
 	userID, err := s.redis.GetSession(ctx, sessionID)
 	if err == nil {
 		return userID, nil
 	}
 
 	// fallback to db
-	parsedID, err := parseUUID(sessionID)
+	parsedID, err := toolchain.ParseUUID(sessionID)
 	if err != nil {
 		return "", ErrUnauthorized
 	}
@@ -101,13 +110,4 @@ func (s *service) ValidateSession(ctx context.Context, sessionID string) (string
 	)
 
 	return session.UserID.String(), nil
-}
-
-// parseUUID converts a string to pgtype.UUID
-func parseUUID(id string) (pgtype.UUID, error) {
-	parsed, err := uuid.Parse(id)
-	if err != nil {
-		return pgtype.UUID{}, err
-	}
-	return pgtype.UUID{Bytes: parsed, Valid: true}, nil
 }

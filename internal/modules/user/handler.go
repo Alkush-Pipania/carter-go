@@ -10,7 +10,6 @@ import (
 
 type Service interface {
 	GetUserByID(context.Context, string) (User, error)
-	CreateUser(context.Context, InputCreateUser) error
 }
 
 type UserHandler struct {

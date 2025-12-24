@@ -23,14 +23,4 @@ func (r *repository) GetUserByID(ctx context.Context, id pgtype.UUID) (db.User, 
 	return user, nil
 }
 
-func (r *repository) CreateUser(ctx context.Context, user InputCreateUser) error {
-	_, err := r.db.CreateUser(ctx, db.CreateUserParams{
-		Email:        user.Email,
-		Username:     user.Username,
-		PasswordHash: user.PasswordHash,
-	})
-	if err != nil {
-		return err
-	}
-	return nil
-}
+

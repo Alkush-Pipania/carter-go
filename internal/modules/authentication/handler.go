@@ -6,17 +6,17 @@ import (
 	"net/http"
 )
 
-type Service interface {
+type ServiceInter interface {
 	Login(ctx context.Context, email string, password string) (*LoginResponse, error)
 	Register(ctx context.Context, password string, email string) error
 	Logout(ctx context.Context, sessionID string) error
 }
 
 type Handler struct {
-	service Service
+	service ServiceInter
 }
 
-func NewHandler(service Service) *Handler {
+func NewHandler(service ServiceInter) *Handler {
 	return &Handler{
 		service: service,
 	}
@@ -48,8 +48,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	sessionID := readSessionCookie(r)
-	if sessionID == "" {
+	sessionID, err := readSessionCookie(r)
+	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
