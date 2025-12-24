@@ -23,7 +23,7 @@ func NewRouter(container *Container) http.Handler {
 	})
 
 	r.Group(func(r chi.Router) {
-		r.Use(middl.AuthMiddleware(container.jwt))
+		r.Use(middl.AuthMiddleware(container.authService)) 
 		r.Route("/api/v1", func(v1Routes chi.Router) {
 			v1Routes.Mount("/users", user.Routes(container.userHandler))
 			v1Routes.Mount("/collections", collection.Routes(container.collectionHandler))

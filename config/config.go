@@ -19,7 +19,12 @@ type Config struct {
 	// S3 Configuration
 	AWSRegion     string
 	S3BucketName  string
-	PresignExpiry int // in minutes
+	PresignExpiry int // in
+
+	// redis
+	RedisAddr     string
+	RedisPassword string
+	RedisDB       int
 }
 
 func LoadEnv() *Config {
@@ -39,6 +44,11 @@ func LoadEnv() *Config {
 		AWSRegion:     getkey("AWS_REGION", "us-east-1"),
 		S3BucketName:  getkey("S3_BUCKET_NAME", "carter-sources"),
 		PresignExpiry: getEnvValue(getkey("PRESIGN_EXPIRY", "15"), 15),
+
+		// redis
+		RedisAddr:     getkey("REDIS_ADDR", "localhost:6379"),
+		RedisPassword: getkey("REDIS_PASSWORD", ""),
+		RedisDB:       getEnvValue(getkey("REDIS_DB", "0"), 0),
 	}
 
 }
