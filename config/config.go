@@ -19,7 +19,7 @@ type Config struct {
 	// S3 Configuration
 	AWSRegion     string
 	S3BucketName  string
-	PresignExpiry int // in
+	PresignExpiry int // in minutes
 
 	// redis
 	RedisAddr     string
