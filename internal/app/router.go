@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	middl "github.com/Alkush-Pipania/carter-go/internal/middleware"
+	"github.com/Alkush-Pipania/carter-go/internal/modules/authentication"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/collection"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/source"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/user"
@@ -22,6 +23,10 @@ func NewRouter(container *Container) http.Handler {
 		w.Write([]byte("OK"))
 	})
 
+	// Public auth routes (no authentication required)
+	r.Mount("/api/v1/auth", authentication.Routes(container.authHandler))
+
+	// Protected routes (authentication required)
 	r.Group(func(r chi.Router) {
 		r.Use(middl.AuthMiddleware(container.authService))
 		r.Route("/api/v1", func(v1Routes chi.Router) {

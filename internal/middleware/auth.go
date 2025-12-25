@@ -43,3 +43,9 @@ func AuthMiddleware(authService AuthService) func(http.Handler) http.Handler {
 func ValidateSession() {
 
 }
+
+// GetUserIDFromContext extracts the user ID set by AuthMiddleware
+func GetUserIDFromContext(ctx context.Context) (string, bool) {
+	userID, ok := ctx.Value(UserIDContextKey).(string)
+	return userID, ok
+}

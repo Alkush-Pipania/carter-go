@@ -38,8 +38,9 @@ func main() {
 
 	// RabbitMQ Setup
 	rmqConn, err := rabbitmq.NewConnection(
-		rabbitmq.DefaultConfig(cfg.RabbitMQUrl),
-		logger.Get(),
+		rabbitmq.Config{
+			URL: cfg.RabbitMQUrl,
+		},
 	)
 	if err != nil {
 		logger.Fatal("Failed to connect to RabbitMQ", zap.Error(err))
@@ -51,7 +52,7 @@ func main() {
 		Exchange:     "carter.embedding",
 		ExchangeType: "direct",
 		Durable:      true,
-	}, logger.Get())
+	})
 	if err != nil {
 		logger.Fatal("Failed to create RabbitMQ producer", zap.Error(err))
 	}
@@ -68,18 +69,20 @@ func main() {
 	}
 	logger.Info("Redis connected")
 
-	// S3 Setup
+	// S3 Setup (DigitalOcean Spaces)
 	s3Client, err := s3.NewClient(ctx, s3.ClientConfig{
-		Region:     cfg.AWSRegion,
-		BucketName: cfg.S3BucketName,
-	}, logger.Get())
+		Region:     cfg.DORegion,
+		Endpoint:   cfg.DOEndpoint,
+		AccessKey:  cfg.DOAccessKey,
+		SecretKey:  cfg.DOSecretKey,
+		BucketName: cfg.DOBucket,
+	})
 	if err != nil {
 		logger.Fatal("Failed to create S3 client", zap.Error(err))
 	}
-	logger.Info("S3 client initialized",
-		zap.String("region", cfg.AWSRegion),
-		zap.String("bucket", cfg.S3BucketName))
-
+	logger.Info("S3 client initialized (DigitalOcean Spaces)",
+		zap.String("region", cfg.DORegion),
+		zap.String("bucket", cfg.DOBucket))
 	presigner := s3.NewPresigner(s3Client, s3.PresignerConfig{
 		ExpiryMinutes: cfg.PresignExpiry,
 	}, logger.Get())

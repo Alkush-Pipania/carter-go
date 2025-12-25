@@ -15,10 +15,12 @@ type Config struct {
 	JwtSecret   string
 	LogLevel    string
 	RabbitMQUrl string
-	QueueName   string
-	// S3 Configuration
-	AWSRegion     string
-	S3BucketName  string
+	// DigitalOcean Spaces Configuration
+	DORegion      string
+	DOEndpoint    string
+	DOAccessKey   string
+	DOSecretKey   string
+	DOBucket      string
 	PresignExpiry int // in minutes
 
 	// redis
@@ -40,9 +42,11 @@ func LoadEnv() *Config {
 		JwtSecret:     getkey("JWT_SECRET", "secret"),
 		LogLevel:      getkey("LOG_LEVEL", "info"),
 		RabbitMQUrl:   getkey("RABBITMQ_URL", "amqp://guest:guest@localhost:5672"),
-		QueueName:     getkey("QUEUE_NAME", "carter_queue"),
-		AWSRegion:     getkey("AWS_REGION", "us-east-1"),
-		S3BucketName:  getkey("S3_BUCKET_NAME", "carter-sources"),
+		DORegion:      getkey("DO_REGION", "blr1"),
+		DOEndpoint:    getkey("DO_ENDPOINT", "https://blr1.digitaloceanspaces.com"),
+		DOAccessKey:   getkey("DO_ACCESS_KEY", ""),
+		DOSecretKey:   getkey("DO_SECRET_KEY", ""),
+		DOBucket:      getkey("DO_BUCKET", "my-bucket"),
 		PresignExpiry: getEnvValue(getkey("PRESIGN_EXPIRY", "15"), 15),
 
 		// redis
