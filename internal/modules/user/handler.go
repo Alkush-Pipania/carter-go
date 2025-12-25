@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/Alkush-Pipania/carter-go/internal/middleware"
 )
 
 type Service interface {
@@ -23,8 +23,13 @@ func NewUserHandler(userService Service) *UserHandler {
 }
 
 func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	user, err := h.userService.GetUserByID(r.Context(), id)
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := h.userService.GetUserByID(r.Context(), userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

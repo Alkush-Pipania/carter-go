@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Alkush-Pipania/carter-go/internal/middleware"
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
 	"github.com/Alkush-Pipania/carter-go/pkg/response"
 	"github.com/go-chi/chi/v5"
@@ -28,7 +29,11 @@ func NewHandler(service Service) *Handler {
 }
 
 func (h *Handler) GetCollections(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("user_id")
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		response.WriteError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
 
 	collections, err := h.service.GetCollectionsByUserID(r.Context(), userID)
 	if err != nil {
@@ -42,7 +47,11 @@ func (h *Handler) GetCollections(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) CreateCollection(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("user_id")
+	userID, ok := middleware.GetUserIDFromContext(r.Context())
+	if !ok {
+		response.WriteError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
 
 	var req CreateCollectionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
