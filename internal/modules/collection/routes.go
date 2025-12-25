@@ -10,4 +10,4 @@ func Routes(h *Handler) chi.Router {
 	r.Put("/{id}", h.UpdateCollection)
 	r.Delete("/{id}", h.DeleteCollection)
 	return r
-}
+} 

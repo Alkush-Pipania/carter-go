@@ -15,22 +15,26 @@ import (
 
 type Repository interface {
 	GetUserByEmail(ctx context.Context, email string) (*db.User, error)
-	CreateUser(ctx context.Context, params db.CreateUserParams) (*db.User, error)
-
 	CreateSession(ctx context.Context, params db.CreateSessionParams) (*db.Session, error)
 	RevokeSession(ctx context.Context, sessionID pgtype.UUID) error
 	GetSession(ctx context.Context, sessionID pgtype.UUID) (*db.Session, error)
 }
 
 type Service struct {
-	repo  Repository
-	redis *redis.Client
+	repo        Repository
+	redis       *redis.Client
+	UserService UserService
 }
 
-func NewService(repository Repository, redis *redis.Client) *Service {
+type UserService interface {
+	CreateUser(context.Context, string, string) error
+}
+
+func NewService(repository Repository, redis *redis.Client, userService UserService) *Service {
 	return &Service{
-		repo:  repository,
-		redis: redis,
+		repo:        repository,
+		redis:       redis,
+		UserService: userService,
 	}
 }
 
@@ -109,10 +113,7 @@ func (s *Service) Register(ctx context.Context, password string, email string) e
 		return err
 	}
 
-	_, err = s.repo.CreateUser(ctx, db.CreateUserParams{
-		Email:        email,
-		PasswordHash: hash,
-	})
+	err = s.UserService.CreateUser(ctx, email, hash)
 	if err != nil {
 		logger.Error("Registration failed: could not create user", zap.String("email", email), zap.Error(err))
 		return err

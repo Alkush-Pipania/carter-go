@@ -43,7 +43,7 @@ func NewContainer(ctx context.Context, db *db.Queries, producer *rabbitmq.Produc
 
 	// Auth module
 	authRepo := authentication.NewRepository(db)
-	authService := authentication.NewService(authRepo, redis)
+	authService := authentication.NewService(authRepo, redis, userService)
 	authHandler := authentication.NewHandler(authService)
 
 	return &Container{

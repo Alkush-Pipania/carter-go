@@ -17,7 +17,7 @@ import (
 func main() {
 	cfg := config.LoadEnv()
 
-	logger.Init(logger.Config{
+	logger.Init(logger.Config{ 
 		Env:   cfg.Env,
 		Level: cfg.LogLevel,
 	})
