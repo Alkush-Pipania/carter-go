@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Alkush-Pipania/carter-go/pkg/logger"
+	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 )
 
@@ -16,12 +17,14 @@ type ServiceInter interface {
 }
 
 type Handler struct {
-	service ServiceInter
+	service   ServiceInter
+	validator *validator.Validate
 }
 
-func NewHandler(service ServiceInter) *Handler {
+func NewHandler(service ServiceInter, validator *validator.Validate) *Handler {
 	return &Handler{
-		service: service,
+		service:   service,
+		validator: validator,
 	}
 }
 
@@ -32,6 +35,12 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logger.Warn("Login handler: invalid request body", zap.Error(err))
 		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		logger.Warn("Login handler: validation failed", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -83,6 +92,12 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		logger.Warn("Register handler: invalid request body", zap.Error(err))
 		http.Error(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		logger.Warn("Register handler: validation failed", zap.Error(err))
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 

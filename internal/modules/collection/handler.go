@@ -9,22 +9,25 @@ import (
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
 	"github.com/Alkush-Pipania/carter-go/pkg/response"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 )
 
 type Service interface {
 	GetCollectionsByUserID(ctx context.Context, userID string) ([]db.Collection, error)
-	CreateCollection(ctx context.Context, userID string, name string) (db.Collection, error)
-	UpdateCollection(ctx context.Context, id string, name string) (db.Collection, error)
+	CreateCollection(ctx context.Context, userID string, name string) (*db.Collection, error)
+	UpdateCollection(ctx context.Context, id string, name string) (*db.Collection, error)
 	DeleteCollection(ctx context.Context, id string) error
 }
 
 type Handler struct {
-	service Service
+	service   Service
+	validator *validator.Validate
 }
 
-func NewHandler(service Service) *Handler {
+func NewHandler(service Service, validator *validator.Validate) *Handler {
 	return &Handler{
-		service: service,
+		service:   service,
+		validator: validator,
 	}
 }
 
@@ -59,8 +62,8 @@ func (h *Handler) CreateCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" {
-		response.WriteError(w, http.StatusBadRequest, "Name is required")
+	if err := h.validator.Struct(req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -70,7 +73,7 @@ func (h *Handler) CreateCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, ToCollectionResponse(collection))
+	response.WriteJSON(w, http.StatusCreated, ToCollectionResponse(collection))
 }
 
 func (h *Handler) UpdateCollection(w http.ResponseWriter, r *http.Request) {
@@ -82,8 +85,8 @@ func (h *Handler) UpdateCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Name == "" {
-		response.WriteError(w, http.StatusBadRequest, "Name is required")
+	if err := h.validator.Struct(req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -104,5 +107,5 @@ func (h *Handler) DeleteCollection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, nil)
+	response.WriteJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

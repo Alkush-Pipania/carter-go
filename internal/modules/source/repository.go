@@ -23,10 +23,14 @@ func (r *repository) CreateSource(ctx context.Context, args db.CreateSourceParam
 	return r.db.CreateSource(ctx, args)
 }
 
-func (r *repository) CreateSourceWithS3Key(ctx context.Context, args db.CreateSourceWithS3KeyParams) (db.Source, error) {
-	return r.db.CreateSourceWithS3Key(ctx, args)
+func (r *repository) CreateSourceContent(ctx context.Context, args db.CreateSourceContentParams) (db.SourceContent, error) {
+	return r.db.CreateSourceContent(ctx, args)
 }
 
-func (r *repository) UpdateSourceStatus(ctx context.Context, args db.UpdateSourceStatusParams) (db.Source, error) {
-	return r.db.UpdateSourceStatus(ctx, args)
+func (r *repository) GetSourceByID(ctx context.Context, id pgtype.UUID) (db.Source, error) {
+	return r.db.GetSourceByID(ctx, id)
+}
+
+func (r *repository) DeleteSource(ctx context.Context, id pgtype.UUID) error {
+	return r.db.DeleteSource(ctx, id)
 }

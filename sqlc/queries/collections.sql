@@ -15,4 +15,3 @@ RETURNING *;
 -- name: DeleteCollection :exec
 DELETE FROM collections
 WHERE id = $1;
-
