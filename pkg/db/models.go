@@ -53,6 +53,48 @@ func (ns NullChatRole) Value() (driver.Value, error) {
 	return string(ns.ChatRole), nil
 }
 
+type OauthProvider string
+
+const (
+	OauthProviderGoogle OauthProvider = "google"
+	OauthProviderGithub OauthProvider = "github"
+)
+
+func (e *OauthProvider) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = OauthProvider(s)
+	case string:
+		*e = OauthProvider(s)
+	default:
+		return fmt.Errorf("unsupported scan type for OauthProvider: %T", src)
+	}
+	return nil
+}
+
+type NullOauthProvider struct {
+	OauthProvider OauthProvider
+	Valid         bool // Valid is true if OauthProvider is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullOauthProvider) Scan(value interface{}) error {
+	if value == nil {
+		ns.OauthProvider, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.OauthProvider.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullOauthProvider) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.OauthProvider), nil
+}
+
 type SourceStatus string
 
 const (
@@ -164,12 +206,41 @@ type Collection struct {
 	CreatedAt pgtype.Timestamptz
 }
 
+type OauthAccount struct {
+	ID             pgtype.UUID
+	UserID         pgtype.UUID
+	Provider       OauthProvider
+	ProviderUserID string
+	Email          pgtype.Text
+	CreatedAt      pgtype.Timestamptz
+}
+
 type PasswordReset struct {
 	ID        pgtype.UUID
 	UserID    pgtype.UUID
 	Token     string
 	ExpiresAt pgtype.Timestamptz
 	CreatedAt pgtype.Timestamptz
+}
+
+type PasswordResetToken struct {
+	ID        pgtype.UUID
+	UserID    pgtype.UUID
+	TokenHash string
+	ExpiresAt pgtype.Timestamptz
+	UsedAt    pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
+}
+
+type Session struct {
+	ID         pgtype.UUID
+	UserID     pgtype.UUID
+	ExpiresAt  pgtype.Timestamptz
+	CreatedAt  pgtype.Timestamptz
+	LastSeenAt pgtype.Timestamptz
+	UserAgent  pgtype.Text
+	IpAddress  pgtype.Text
+	IsRevoked  bool
 }
 
 type Source struct {

@@ -9,8 +9,8 @@ import (
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
 	"github.com/Alkush-Pipania/carter-go/pkg/logger"
 	"github.com/Alkush-Pipania/carter-go/pkg/rabbitmq"
+	redisPkg "github.com/Alkush-Pipania/carter-go/pkg/redis"
 	"github.com/Alkush-Pipania/carter-go/pkg/s3"
-	"github.com/Alkush-Pipania/carter-go/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -36,8 +36,6 @@ func main() {
 
 	q := db.New(dbConn)
 
-	jwt := utils.NewJwtservice(cfg.JwtSecret)
-
 	// RabbitMQ Setup
 	rmqConn, err := rabbitmq.NewConnection(
 		rabbitmq.DefaultConfig(cfg.RabbitMQUrl),
@@ -60,6 +58,16 @@ func main() {
 	defer producer.Close()
 	logger.Info("RabbitMQ producer created")
 
+	redisClient, err := redisPkg.New(ctx, redisPkg.Config{
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPassword,
+		DB:       cfg.RedisDB,
+	})
+	if err != nil {
+		logger.Fatal("Failed to connect to Redis", zap.Error(err))
+	}
+	logger.Info("Redis connected")
+
 	// S3 Setup
 	s3Client, err := s3.NewClient(ctx, s3.ClientConfig{
 		Region:     cfg.AWSRegion,
@@ -78,7 +86,7 @@ func main() {
 	logger.Info("S3 presigner created",
 		zap.Int("expiry_minutes", cfg.PresignExpiry))
 
-	container := app.NewContainer(ctx, q, jwt, producer, presigner)
+	container := app.NewContainer(ctx, q, producer, presigner, redisClient)
 
 	router := app.NewRouter(container)
 

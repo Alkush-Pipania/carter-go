@@ -9,11 +9,17 @@ import (
 
 type Repository interface {
 	GetUserByID(context.Context, pgtype.UUID) (db.User, error)
-	CreateUser(context.Context, InputCreateUser) error
 }
 
 type service struct {
 	repo Repository
+}
+
+// Exported constructor - the ONLY way to create a service
+func NewService(repo Repository) Service {
+	return &service{
+		repo: repo,
+	}
 }
 
 func (s *service) GetUserByID(ctx context.Context, id string) (User, error) {
@@ -33,15 +39,4 @@ func (s *service) GetUserByID(ctx context.Context, id string) (User, error) {
 		Verified:  user.Verified,
 		CreatedAt: user.CreatedAt.Time,
 	}, nil
-}
-
-func (s *service) CreateUser(ctx context.Context, user InputCreateUser) error {
-	return s.repo.CreateUser(ctx, user)
-}
-
-// Exported constructor - the ONLY way to create a service
-func NewService(repo Repository) Service {
-	return &service{
-		repo: repo,
-	}
 }
