@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Alkush-Pipania/carter-go/internal/middleware"
 	"github.com/Alkush-Pipania/carter-go/pkg/response"
 	"github.com/Alkush-Pipania/carter-go/pkg/utils"
 	"github.com/go-chi/chi/v5"
@@ -31,8 +32,8 @@ func NewHandler(svc Service, validator *validator.Validate) *Handler {
 // RequestUploadURL handles requests for presigned S3 upload URLs
 func (h *Handler) RequestUploadURL(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := r.Header.Get("user_id")
-	if userID == "" {
+	userID, ok := middleware.GetUserIDFromContext(ctx)
+	if !ok || userID == "" {
 		response.WriteError(w, http.StatusUnauthorized, "User ID is required")
 		return
 	}
@@ -67,8 +68,8 @@ func (h *Handler) RequestUploadURL(w http.ResponseWriter, r *http.Request) {
 // ConfirmUpload handles upload confirmation after client uploads to S3
 func (h *Handler) ConfirmUpload(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := r.Header.Get("user_id")
-	if userID == "" {
+	userID, ok := middleware.GetUserIDFromContext(ctx)
+	if !ok || userID == "" {
 		response.WriteError(w, http.StatusUnauthorized, "User ID is required")
 		return
 	}

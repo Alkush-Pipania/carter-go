@@ -7,4 +7,4 @@ func Routes(h *Handler) chi.Router {
 	r.Post("/presign", h.RequestUploadURL)
 	r.Post("/{id}/confirm", h.ConfirmUpload)
 	return r
-}
+} 
