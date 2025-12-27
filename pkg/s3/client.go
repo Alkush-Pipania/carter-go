@@ -40,6 +40,7 @@ func NewClient(ctx context.Context, cfg ClientConfig) (*Client, error) {
 
 	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(cfg.Endpoint)
+		o.UsePathStyle = false // Use virtual-hosted style (bucket.endpoint) for DigitalOcean Spaces
 	})
 
 	return &Client{

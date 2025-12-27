@@ -9,6 +9,7 @@ import (
 
 type Repository interface {
 	GetUserByID(context.Context, pgtype.UUID) (db.User, error)
+	CreateUser(context.Context, db.CreateUserParams) (*db.User, error)
 }
 
 type service struct {
@@ -16,7 +17,7 @@ type service struct {
 }
 
 // Exported constructor - the ONLY way to create a service
-func NewService(repo Repository) Service {
+func NewService(repo Repository) *service {
 	return &service{
 		repo: repo,
 	}
@@ -39,4 +40,12 @@ func (s *service) GetUserByID(ctx context.Context, id string) (User, error) {
 		Verified:  user.Verified,
 		CreatedAt: user.CreatedAt.Time,
 	}, nil
+}
+
+func (s *service) CreateUser(ctx context.Context, email string, hash string) error {
+	_, error := s.repo.CreateUser(ctx, db.CreateUserParams{
+		Email:        email,
+		PasswordHash: hash,
+	})
+	return error
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/Alkush-Pipania/carter-go/internal/modules/authentication"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/collection"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/source"
+	"github.com/Alkush-Pipania/carter-go/internal/modules/upload"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/user"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -33,6 +34,7 @@ func NewRouter(container *Container) http.Handler {
 			v1Routes.Mount("/users", user.Routes(container.userHandler))
 			v1Routes.Mount("/collections", collection.Routes(container.collectionHandler))
 			v1Routes.Mount("/sources", source.Routes(container.sourceHandler))
+			v1Routes.Mount("/upload", upload.Routes(container.uploadHandler))
 		})
 	})
 
