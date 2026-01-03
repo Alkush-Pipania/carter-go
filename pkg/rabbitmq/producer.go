@@ -37,6 +37,31 @@ func NewProducer(conn *Connection, cfg ProducerConfig) (*Producer, error) {
 		return nil, err
 	}
 
+	// create queue
+	q, err := ch.QueueDeclare(
+		"source.processor.queue", // Name
+		true,                     // Durable
+		false,                    // Delete when unused
+		false,                    // Exclusive
+		false,                    // No-wait
+		nil,                      // Arguments
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// bind it
+	err = ch.QueueBind(
+		q.Name,
+		"source.process", // Routing Key
+		cfg.Exchange,
+		false,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Producer{
 		ch:       ch,
 		exchange: cfg.Exchange,
