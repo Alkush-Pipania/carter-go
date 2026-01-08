@@ -1,16 +1,11 @@
 package user
 
 import (
-	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/Alkush-Pipania/carter-go/internal/middleware"
+	"github.com/Alkush-Pipania/carter-go/pkg/errors"
 )
-
-type Service interface {
-	GetUserByID(context.Context, string) (User, error)
-}
 
 type UserHandler struct {
 	userService Service
@@ -25,13 +20,13 @@ func NewUserHandler(userService Service) *UserHandler {
 func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := middleware.GetUserIDFromContext(r.Context())
 	if !ok {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		errors.RespondWithError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
 	user, err := h.userService.GetUserByID(r.Context(), userID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errors.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -44,9 +39,5 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: user.CreatedAt,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-		return
-	}
+	errors.RespondWithJSON(w, http.StatusOK, response)
 }

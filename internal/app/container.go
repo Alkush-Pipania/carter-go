@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/Alkush-Pipania/carter-go/internal/modules/authentication"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/collection"
@@ -19,18 +20,8 @@ type JWTVerifier interface {
 	Verify(token string) (string, error)
 }
 
-type Container struct {
-	DB                *db.Queries
-	userHandler       *user.UserHandler
-	collectionHandler *collection.Handler
-	sourceHandler     *source.Handler
-	uploadHandler     *upload.Handler
-	Redis             *redis.Client
-	authService       *authentication.Service
-	authHandler       *authentication.Handler
-}
-
-func NewContainer(ctx context.Context, db *db.Queries, producer *rabbitmq.Producer, presigner *s3.Presigner, redis *redis.Client) *Container {
+// NewApp initializes dependencies and returns the router (http.Handler)
+func NewApp(ctx context.Context, db *db.Queries, producer *rabbitmq.Producer, presigner *s3.Presigner, redis *redis.Client) http.Handler {
 	// Shared validator instance for all handlers
 	validator := validation.NewValidator()
 
@@ -57,14 +48,10 @@ func NewContainer(ctx context.Context, db *db.Queries, producer *rabbitmq.Produc
 	authService := authentication.NewService(authRepo, redis, userService)
 	authHandler := authentication.NewHandler(authService, validator)
 
-	return &Container{
-		DB:                db,
-		userHandler:       userHandler,
-		collectionHandler: collectionHandler,
-		sourceHandler:     sourceHandler,
-		uploadHandler:     uploadHandler,
-		Redis:             redis,
-		authService:       authService,
-		authHandler:       authHandler,
-	}
+	// We can reuse NewRouter's logic here or call a modified NewRouter
+	// Since NewRouter depended on Container, we will inline the routing logic or refactor NewRouter.
+	// For better separation, let's keep NewRouter but make it accept the handlers.
+	// But given the task is to refactor container, let's make this function return the handler directly.
+
+	return NewRouter(userHandler, collectionHandler, sourceHandler, uploadHandler, authHandler, authService)
 }

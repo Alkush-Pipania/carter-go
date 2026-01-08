@@ -12,12 +12,17 @@ type Repository interface {
 	CreateUser(context.Context, db.CreateUserParams) (*db.User, error)
 }
 
+type Service interface {
+	GetUserByID(ctx context.Context, id string) (User, error)
+	CreateUser(ctx context.Context, email string, hash string) error
+}
+
 type service struct {
 	repo Repository
 }
 
-// Exported constructor - the ONLY way to create a service
-func NewService(repo Repository) *service {
+// NewService returns the Service interface, not the concrete struct
+func NewService(repo Repository) Service {
 	return &service{
 		repo: repo,
 	}

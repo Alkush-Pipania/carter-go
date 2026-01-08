@@ -13,7 +13,14 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func NewRouter(container *Container) http.Handler {
+func NewRouter(
+	userHandler *user.UserHandler,
+	collectionHandler *collection.Handler,
+	sourceHandler *source.Handler,
+	uploadHandler *upload.Handler,
+	authHandler *authentication.Handler,
+	authService *authentication.Service,
+) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logger)
@@ -25,16 +32,16 @@ func NewRouter(container *Container) http.Handler {
 	})
 
 	// Public auth routes (no authentication required)
-	r.Mount("/api/v1/auth", authentication.Routes(container.authHandler))
+	r.Mount("/api/v1/auth", authentication.Routes(authHandler))
 
 	// Protected routes (authentication required)
 	r.Group(func(r chi.Router) {
-		r.Use(middl.AuthMiddleware(container.authService))
+		r.Use(middl.AuthMiddleware(authService))
 		r.Route("/api/v1", func(v1Routes chi.Router) {
-			v1Routes.Mount("/users", user.Routes(container.userHandler))
-			v1Routes.Mount("/collections", collection.Routes(container.collectionHandler))
-			v1Routes.Mount("/sources", source.Routes(container.sourceHandler))
-			v1Routes.Mount("/upload", upload.Routes(container.uploadHandler))
+			v1Routes.Mount("/users", user.Routes(userHandler))
+			v1Routes.Mount("/collections", collection.Routes(collectionHandler))
+			v1Routes.Mount("/sources", source.Routes(sourceHandler))
+			v1Routes.Mount("/upload", upload.Routes(uploadHandler))
 		})
 	})
 

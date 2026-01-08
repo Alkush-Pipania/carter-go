@@ -17,13 +17,15 @@ import (
 func main() {
 	cfg := config.LoadEnv()
 
-	logger.Init(logger.Config{ 
+	logger.Init(logger.Config{
 		Env:   cfg.Env,
 		Level: cfg.LogLevel,
 	})
 	defer logger.Sync()
 
-	logger.Info("Starting application",
+	log := logger.Get() // Get the initialized logger
+
+	log.Info("Starting application",
 		zap.String("env", cfg.Env),
 		zap.String("log_level", cfg.LogLevel),
 	)
@@ -32,7 +34,7 @@ func main() {
 	defer cancel()
 
 	dbConn := db.Init(ctx, cfg.DbUrl)
-	logger.Info("Database connected")
+	log.Info("Database connected")
 
 	q := db.New(dbConn)
 
@@ -43,10 +45,10 @@ func main() {
 		},
 	)
 	if err != nil {
-		logger.Fatal("Failed to connect to RabbitMQ", zap.Error(err))
+		log.Fatal("Failed to connect to RabbitMQ", zap.Error(err))
 	}
 	defer rmqConn.Close()
-	logger.Info("RabbitMQ connected")
+	log.Info("RabbitMQ connected")
 
 	producer, err := rabbitmq.NewProducer(rmqConn, rabbitmq.ProducerConfig{
 		Exchange:     "carter.embedding",
@@ -54,10 +56,10 @@ func main() {
 		Durable:      true,
 	})
 	if err != nil {
-		logger.Fatal("Failed to create RabbitMQ producer", zap.Error(err))
+		log.Fatal("Failed to create RabbitMQ producer", zap.Error(err))
 	}
 	defer producer.Close()
-	logger.Info("RabbitMQ producer created")
+	log.Info("RabbitMQ producer created")
 
 	redisClient, err := redisPkg.New(ctx, redisPkg.Config{
 		Addr:     cfg.RedisAddr,
@@ -65,9 +67,9 @@ func main() {
 		DB:       cfg.RedisDB,
 	})
 	if err != nil {
-		logger.Fatal("Failed to connect to Redis", zap.Error(err))
+		log.Fatal("Failed to connect to Redis", zap.Error(err))
 	}
-	logger.Info("Redis connected")
+	log.Info("Redis connected")
 
 	// S3 Setup (DigitalOcean Spaces)
 	s3Client, err := s3.NewClient(ctx, s3.ClientConfig{
@@ -78,27 +80,29 @@ func main() {
 		BucketName: cfg.DOBucket,
 	})
 	if err != nil {
-		logger.Fatal("Failed to create S3 client", zap.Error(err))
+		log.Fatal("Failed to create S3 client", zap.Error(err))
 	}
-	logger.Info("S3 client initialized (DigitalOcean Spaces)",
+	log.Info("S3 client initialized (DigitalOcean Spaces)",
 		zap.String("region", cfg.DORegion),
 		zap.String("bucket", cfg.DOBucket))
 	presigner := s3.NewPresigner(s3Client, s3.PresignerConfig{
 		ExpiryMinutes: cfg.PresignExpiry,
-	}, logger.Get())
-	logger.Info("S3 presigner created",
+	}, log)
+	log.Info("S3 presigner created",
 		zap.Int("expiry_minutes", cfg.PresignExpiry))
 
-	container := app.NewContainer(ctx, q, producer, presigner, redisClient)
+	// Wiring dependencies using NewApp which returns the router (http.Handler)
+	// We use the simpler wiring function we created.
+	// Note: NewContainer was renamed/refactored to NewApp in internal/app/container.go
+	router := app.NewApp(ctx, q, producer, presigner, redisClient)
 
-	router := app.NewRouter(container)
+	// Initialize Server with the new signature that accepts logger
+	srv := server.New(router, cfg.Port, log)
 
-	srv := server.New(router, cfg.Port)
+	log.Info("Server initialized", zap.String("port", cfg.Port))
 
-	logger.Info("Server starting", zap.String("port", cfg.Port))
-
-	err = srv.ListenAndServe()
-	if err != nil {
-		logger.Fatal("Server failed to start", zap.Error(err))
+	// Run the server (blocking call that handles graceful shutdown)
+	if err := srv.Run(); err != nil {
+		log.Fatal("Server exited with error", zap.Error(err))
 	}
 }
