@@ -8,7 +8,7 @@ import (
 type CreateSourceRequest struct {
 	CollectionID string `json:"collection_id" validate:"required,uuid"`
 	Type         string `json:"type" validate:"required,oneof=link note"`
-	Title        string `json:"title" validate:"required"`
+	Title        string `json:"title"`
 	OriginalUrl  string `json:"original_url,omitempty" validate:"omitempty,url"`
 	Content      string `json:"content,omitempty"` // For notes - the text content
 }

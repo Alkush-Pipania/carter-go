@@ -2,8 +2,7 @@ package source
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -27,10 +26,10 @@ type Repository interface {
 
 type service struct {
 	repo     Repository
-	producer *rabbitmq.Producer
+	producer *rabbitmq.Publisher
 }
 
-func NewService(repo Repository, producer *rabbitmq.Producer) Service {
+func NewService(repo Repository, producer *rabbitmq.Publisher) Service {
 	return &service{
 		repo:     repo,
 		producer: producer,
@@ -77,7 +76,7 @@ func (s *service) createLinkSource(ctx context.Context, userID string, req Creat
 		UserID:       userUUID,
 		CollectionID: collectionUUID,
 		Type:         db.SourceTypeLink,
-		Title:        req.Title,
+		Title:        "",
 		OriginalUrl:  pgtype.Text{String: req.OriginalUrl, Valid: true},
 	})
 	if err != nil {
@@ -115,21 +114,17 @@ func (s *service) createNoteSource(ctx context.Context, userID string, req Creat
 		UserID:       userUUID,
 		CollectionID: collectionUUID,
 		Type:         db.SourceTypeNote,
-		Title:        req.Title,
+		Title:        "",
 		OriginalUrl:  pgtype.Text{Valid: false}, // No URL for notes
 	})
 	if err != nil {
 		return db.Source{}, fmt.Errorf("failed to create source: %w", err)
 	}
 
-	// Calculate content hash for deduplication
-	contentHash := hashContent(req.Content)
-
 	// Save the content to source_contents table
 	_, err = s.repo.CreateSourceContent(ctx, db.CreateSourceContentParams{
 		SourceID:    source.ID,
 		ContentText: req.Content,
-		ContentHash: contentHash,
 	})
 	if err != nil {
 		return db.Source{}, fmt.Errorf("failed to save source content: %w", err)
@@ -150,20 +145,17 @@ func (s *service) publishSourceProcessing(ctx context.Context, source db.Source,
 		return nil // No producer configured, skip
 	}
 
-	msg := SourceProcessingMessage{
+	msgBody, _ := json.Marshal(&SourceProcessingMessage{
 		SourceID: source.ID.String(),
 		Type:     string(source.Type),
 		UserID:   userID,
+	})
+
+	err := s.producer.Publish(ctx, msgBody)
+	if err != nil {
+		return err
 	}
-
-	return s.producer.Publish(ctx, RoutingKeySourceProcess, msg)
-}
-
-// hashContent creates a SHA256 hash of the content for deduplication
-func hashContent(content string) string {
-	h := sha256.New()
-	h.Write([]byte(content))
-	return hex.EncodeToString(h.Sum(nil))
+	return nil
 }
 
 // GetSourceByID returns a single source by ID

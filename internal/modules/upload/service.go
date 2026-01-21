@@ -2,6 +2,7 @@ package upload
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -28,10 +29,10 @@ type Repository interface {
 type service struct {
 	repo      Repository
 	presigner *s3.Presigner
-	producer  *rabbitmq.Producer
+	producer  *rabbitmq.Publisher
 }
 
-func NewService(repo Repository, presigner *s3.Presigner, producer *rabbitmq.Producer) Service {
+func NewService(repo Repository, presigner *s3.Presigner, producer *rabbitmq.Publisher) Service {
 	return &service{
 		repo:      repo,
 		presigner: presigner,
@@ -151,12 +152,12 @@ func (s *service) ConfirmUpload(ctx context.Context, userID string, sourceID str
 	// Publish to RabbitMQ for processing (parsing, embedding, etc.)
 	if s.producer != nil {
 		log.Printf("[ConfirmUpload] Publishing to RabbitMQ with routing key: %s", RoutingKeySourceProcess)
-		msg := SourceProcessingMessage{
+		msgBody, _ := json.Marshal(&SourceProcessingMessage{
 			SourceID: sourceID,
 			Type:     string(source.Type),
 			UserID:   userID,
-		}
-		if err := s.producer.Publish(ctx, RoutingKeySourceProcess, msg); err != nil {
+		})
+		if err := s.producer.Publish(ctx, msgBody); err != nil {
 			// Log error but don't fail - source is confirmed
 			log.Printf("[ConfirmUpload] WARNING: failed to publish source for processing: %v", err)
 		} else {

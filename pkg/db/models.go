@@ -253,7 +253,6 @@ type Source struct {
 	OriginalUrl  pgtype.Text
 	S3Bucket     pgtype.Text
 	S3Key        pgtype.Text
-	ContentHash  pgtype.Text
 	CreatedAt    pgtype.Timestamptz
 }
 
@@ -261,7 +260,6 @@ type SourceContent struct {
 	ID          pgtype.UUID
 	SourceID    pgtype.UUID
 	ContentText string
-	ContentHash string
 	CreatedAt   pgtype.Timestamptz
 }
 
