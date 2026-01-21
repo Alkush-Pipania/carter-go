@@ -12,32 +12,30 @@ import (
 )
 
 const createSourceContent = `-- name: CreateSourceContent :one
-INSERT INTO source_contents (source_id, content_text, content_hash)
-VALUES ($1, $2, $3)
-RETURNING id, source_id, content_text, content_hash, created_at
+INSERT INTO source_contents (source_id, content_text)
+VALUES ($1, $2)
+RETURNING id, source_id, content_text, created_at
 `
 
 type CreateSourceContentParams struct {
 	SourceID    pgtype.UUID
 	ContentText string
-	ContentHash string
 }
 
 func (q *Queries) CreateSourceContent(ctx context.Context, arg CreateSourceContentParams) (SourceContent, error) {
-	row := q.db.QueryRow(ctx, createSourceContent, arg.SourceID, arg.ContentText, arg.ContentHash)
+	row := q.db.QueryRow(ctx, createSourceContent, arg.SourceID, arg.ContentText)
 	var i SourceContent
 	err := row.Scan(
 		&i.ID,
 		&i.SourceID,
 		&i.ContentText,
-		&i.ContentHash,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getSourceContentBySourceID = `-- name: GetSourceContentBySourceID :many
-SELECT id, source_id, content_text, content_hash, created_at FROM source_contents WHERE source_id = $1
+SELECT id, source_id, content_text, created_at FROM source_contents WHERE source_id = $1
 `
 
 func (q *Queries) GetSourceContentBySourceID(ctx context.Context, sourceID pgtype.UUID) ([]SourceContent, error) {
@@ -53,7 +51,6 @@ func (q *Queries) GetSourceContentBySourceID(ctx context.Context, sourceID pgtyp
 			&i.ID,
 			&i.SourceID,
 			&i.ContentText,
-			&i.ContentHash,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 
+	"github.com/Alkush-Pipania/carter-go/config"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/authentication"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/collection"
 	"github.com/Alkush-Pipania/carter-go/internal/modules/source"
@@ -13,6 +14,7 @@ import (
 	"github.com/Alkush-Pipania/carter-go/pkg/redis"
 	"github.com/Alkush-Pipania/carter-go/pkg/s3"
 	"github.com/Alkush-Pipania/carter-go/pkg/validation"
+	"github.com/rabbitmq/amqp091-go"
 )
 
 type JWTVerifier interface {
@@ -28,11 +30,22 @@ type Container struct {
 	Redis             *redis.Client
 	authService       *authentication.Service
 	authHandler       *authentication.Handler
+	RMQConn           *amqp091.Connection
 }
 
-func NewContainer(ctx context.Context, db *db.Queries, producer *rabbitmq.Producer, presigner *s3.Presigner, redis *redis.Client) *Container {
+func NewContainer(ctx context.Context, db *db.Queries, presigner *s3.Presigner, redis *redis.Client, cfg *config.Config) (*Container, error) {
 	// Shared validator instance for all handlers
 	validator := validation.NewValidator()
+
+	rmqConn, err := setupRabbitMQ(&cfg.RabbitMQ)
+	if err != nil {
+		return nil, err
+	}
+
+	pbh, err := rabbitmq.NewPublisher(rmqConn, cfg.RabbitMQ.ExchangeName, cfg.RabbitMQ.RoutingKey)
+	if err != nil {
+		return nil, err
+	}
 
 	userRepo := user.NewRepository(db)
 	userService := user.NewService(userRepo)
@@ -44,12 +57,12 @@ func NewContainer(ctx context.Context, db *db.Queries, producer *rabbitmq.Produc
 
 	// Source module with RabbitMQ producer for embedding queue
 	sourceRepo := source.NewRepository(db)
-	sourceService := source.NewService(sourceRepo, producer)
+	sourceService := source.NewService(sourceRepo, pbh)
 	sourceHandler := source.NewHandler(sourceService, validator)
 
 	// Upload module with S3 presigner and RabbitMQ producer for file uploads
 	uploadRepo := upload.NewRepository(db)
-	uploadService := upload.NewService(uploadRepo, presigner, producer)
+	uploadService := upload.NewService(uploadRepo, presigner, pbh)
 	uploadHandler := upload.NewHandler(uploadService, validator)
 
 	// Auth module
@@ -66,5 +79,24 @@ func NewContainer(ctx context.Context, db *db.Queries, producer *rabbitmq.Produc
 		Redis:             redis,
 		authService:       authService,
 		authHandler:       authHandler,
+		RMQConn:           rmqConn,
+	}, nil
+}
+
+func setupRabbitMQ(cfg *config.RabbitMQConfig) (*amqp091.Connection, error) {
+	rmqpConn, err := rabbitmq.NewConn(cfg)
+	if err != nil {
+		return nil, err
 	}
+	if err := rabbitmq.SetupTopology(rmqpConn, cfg); err != nil {
+		return nil, err
+	}
+	return rmqpConn, nil
+}
+
+func (c *Container) Shutdown(ctx context.Context) error {
+	if c.RMQConn != nil {
+		_ = c.RMQConn.Close()
+	}
+	return nil
 }

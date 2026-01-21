@@ -32,8 +32,6 @@ CREATE TABLE IF NOT EXISTS sources (
     s3_bucket TEXT,
     s3_key TEXT,
 
-    -- Dedup / reprocessing safety
-    content_hash TEXT,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
