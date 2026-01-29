@@ -2,70 +2,59 @@ package rabbitmq
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 
-	"github.com/rabbitmq/amqp091-go"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type Producer struct {
-	ch       *amqp091.Channel
-	exchange string
+type Publisher struct {
+	ch         *amqp.Channel            // AMQP channel for publishing messages
+	confirms   <-chan amqp.Confirmation // Channel to receive publish confirmations
+	exchange   string                   // Exchange to publish messages to
+	routingKey string                   // Routing key for the messages
 }
 
-type ProducerConfig struct {
-	Exchange     string
-	ExchangeType string
-	Durable      bool
-}
-
-func NewProducer(conn *Connection, cfg ProducerConfig) (*Producer, error) {
-	ch, err := conn.Conn.Channel()
+func NewPublisher(conn *amqp.Connection, exchange string, routingkey string) (*Publisher, error) {
+	if conn == nil {
+		return nil, errors.New("AMQP connection is nil ")
+	}
+	ch, err := conn.Channel()
 	if err != nil {
 		return nil, err
 	}
-
-	err = ch.ExchangeDeclare(
-		cfg.Exchange,
-		cfg.ExchangeType,
-		cfg.Durable,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
+	if err := ch.Confirm(false); err != nil {
 		return nil, err
 	}
+	confirms := ch.NotifyPublish(make(chan amqp.Confirmation, 100))
 
-	return &Producer{
-		ch:       ch,
-		exchange: cfg.Exchange,
+	return &Publisher{
+		ch:         ch,
+		confirms:   confirms,
+		exchange:   exchange,
+		routingKey: routingkey,
 	}, nil
 }
 
-func (p *Producer) Publish(
-	ctx context.Context,
-	routingKey string,
-	payload any,
-) error {
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return err
+func (p *Publisher) Publish(ctx context.Context, body []byte) error {
+	if p.ch == nil {
+		return errors.New("AMQP chanel is nil ")
 	}
-
 	return p.ch.PublishWithContext(
 		ctx,
 		p.exchange,
-		routingKey,
+		p.routingKey,
 		false,
 		false,
-		amqp091.Publishing{
+		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        body,
 		},
 	)
 }
 
-func (p *Producer) Close() error {
-	return p.ch.Close()
+func (p *Publisher) Close() error {
+	if p.ch != nil {
+		return p.ch.Close()
+	}
+	return nil
 }

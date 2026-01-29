@@ -5,25 +5,29 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Alkush-Pipania/carter-go/internal/middleware"
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
 	"github.com/Alkush-Pipania/carter-go/pkg/response"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 )
 
 type Handler struct {
-	service Service
+	service   Service
+	validator *validator.Validate
 }
 
 type Service interface {
 	GetSourcesByCollectionID(ctx context.Context, collectionID string) ([]db.Source, error)
 	CreateSource(ctx context.Context, userID string, req CreateSourceRequest) (db.Source, error)
-	RequestUploadURL(ctx context.Context, userID string, req PresignUploadRequest) (*PresignUploadResponse, error)
-	ConfirmUpload(ctx context.Context, userID string, sourceID string) error
+	GetSourceByID(ctx context.Context, sourceID string) (db.Source, error)
+	DeleteSource(ctx context.Context, sourceID string) error
 }
 
-func NewHandler(svc Service) *Handler {
+func NewHandler(svc Service, validator *validator.Validate) *Handler {
 	return &Handler{
-		service: svc,
+		service:   svc,
+		validator: validator,
 	}
 }
 
@@ -45,9 +49,9 @@ func (h *Handler) GetSourcesByCollectionID(w http.ResponseWriter, r *http.Reques
 
 func (h *Handler) CreateSource(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := r.Header.Get("user_id")
-	if userID == "" {
-		response.WriteError(w, http.StatusUnauthorized, "User ID is required")
+	userID, ok := middleware.GetUserIDFromContext(ctx)
+	if !ok {
+		response.WriteError(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
@@ -57,111 +61,64 @@ func (h *Handler) CreateSource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate required fields
-	if req.CollectionID == "" {
-		response.WriteError(w, http.StatusBadRequest, "Collection ID is required")
-		return
-	}
-	if req.Type == "" {
-		response.WriteError(w, http.StatusBadRequest, "Source type is required")
-		return
-	}
-	if req.Title == "" {
-		response.WriteError(w, http.StatusBadRequest, "Title is required")
+	if err := h.validator.Struct(req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// Validate source type
-	validTypes := map[string]bool{"link": true, "pdf": true, "ppt": true, "doc": true, "note": true}
-	if !validTypes[req.Type] {
-		response.WriteError(w, http.StatusBadRequest, "Invalid source type. Must be one of: link, pdf, ppt, doc, note")
-		return
+	// Type-specific validation
+	switch req.Type {
+	case "link":
+		if req.OriginalUrl == "" {
+			response.WriteError(w, http.StatusBadRequest, "Original URL is required for link type")
+			return
+		}
+	case "note":
+		if req.Content == "" {
+			response.WriteError(w, http.StatusBadRequest, "Content is required for note type")
+			return
+		}
 	}
 
-	// For link type, original_url is required
-	if req.Type == "link" && req.OriginalUrl == "" {
-		response.WriteError(w, http.StatusBadRequest, "Original URL is required for link type")
-		return
-	}
-
-	// Create source via service
+	// Create source via service (handles type routing internally)
 	source, err := h.service.CreateSource(ctx, userID, req)
 	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "Failed to create source")
+		response.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	response.WriteJSON(w, http.StatusCreated, ToSourceResponse(source))
+	response.WriteJSON(w, http.StatusCreated, ToSourceResponse(&source))
 }
 
-// RequestUploadURL handles requests for presigned S3 upload URLs
-func (h *Handler) RequestUploadURL(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetSourceByID(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	userID := r.Header.Get("user_id")
-	if userID == "" {
-		response.WriteError(w, http.StatusUnauthorized, "User ID is required")
-		return
-	}
-
-	var req PresignUploadRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.WriteError(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	// Validate required fields
-	if req.Filename == "" {
-		response.WriteError(w, http.StatusBadRequest, "Filename is required")
-		return
-	}
-	if req.ContentType == "" {
-		response.WriteError(w, http.StatusBadRequest, "Content type is required")
-		return
-	}
-	if req.CollectionID == "" {
-		response.WriteError(w, http.StatusBadRequest, "Collection ID is required")
-		return
-	}
-	if req.Title == "" {
-		response.WriteError(w, http.StatusBadRequest, "Title is required")
-		return
-	}
-
-	// Validate content type
-	if !IsAllowedContentType(req.ContentType) {
-		response.WriteError(w, http.StatusBadRequest, "Unsupported content type. Allowed: PDF, PPT, DOC")
-		return
-	}
-
-	result, err := h.service.RequestUploadURL(ctx, userID, req)
-	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "Failed to generate upload URL")
-		return
-	}
-
-	response.WriteJSON(w, http.StatusOK, result)
-}
-
-// ConfirmUpload handles upload confirmation after client uploads to S3
-func (h *Handler) ConfirmUpload(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	userID := r.Header.Get("user_id")
-	if userID == "" {
-		response.WriteError(w, http.StatusUnauthorized, "User ID is required")
-		return
-	}
-
 	sourceID := chi.URLParam(r, "id")
 	if sourceID == "" {
 		response.WriteError(w, http.StatusBadRequest, "Source ID is required")
 		return
 	}
 
-	err := h.service.ConfirmUpload(ctx, userID, sourceID)
+	source, err := h.service.GetSourceByID(ctx, sourceID)
 	if err != nil {
-		response.WriteError(w, http.StatusInternalServerError, "Failed to confirm upload")
+		response.WriteError(w, http.StatusNotFound, "Source not found")
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, map[string]string{"status": "confirmed"})
+	response.WriteJSON(w, http.StatusOK, ToSourceResponse(&source))
+}
+
+func (h *Handler) DeleteSource(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	sourceID := chi.URLParam(r, "id")
+	if sourceID == "" {
+		response.WriteError(w, http.StatusBadRequest, "Source ID is required")
+		return
+	}
+
+	if err := h.service.DeleteSource(ctx, sourceID); err != nil {
+		response.WriteError(w, http.StatusInternalServerError, "Failed to delete source")
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, map[string]string{"status": "deleted"})
 }

@@ -14,7 +14,7 @@ import (
 const createSource = `-- name: CreateSource :one
 INSERT INTO sources (user_id, collection_id, type, title, original_url)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at
+RETURNING id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, created_at
 `
 
 type CreateSourceParams struct {
@@ -44,7 +44,6 @@ func (q *Queries) CreateSource(ctx context.Context, arg CreateSourceParams) (Sou
 		&i.OriginalUrl,
 		&i.S3Bucket,
 		&i.S3Key,
-		&i.ContentHash,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -53,7 +52,7 @@ func (q *Queries) CreateSource(ctx context.Context, arg CreateSourceParams) (Sou
 const createSourceWithS3Key = `-- name: CreateSourceWithS3Key :one
 INSERT INTO sources (user_id, collection_id, type, title, s3_key)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at
+RETURNING id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, created_at
 `
 
 type CreateSourceWithS3KeyParams struct {
@@ -83,7 +82,6 @@ func (q *Queries) CreateSourceWithS3Key(ctx context.Context, arg CreateSourceWit
 		&i.OriginalUrl,
 		&i.S3Bucket,
 		&i.S3Key,
-		&i.ContentHash,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -99,7 +97,7 @@ func (q *Queries) DeleteSource(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getSourceByID = `-- name: GetSourceByID :one
-SELECT id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at FROM sources WHERE id = $1
+SELECT id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, created_at FROM sources WHERE id = $1
 `
 
 func (q *Queries) GetSourceByID(ctx context.Context, id pgtype.UUID) (Source, error) {
@@ -115,14 +113,13 @@ func (q *Queries) GetSourceByID(ctx context.Context, id pgtype.UUID) (Source, er
 		&i.OriginalUrl,
 		&i.S3Bucket,
 		&i.S3Key,
-		&i.ContentHash,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const getSourcesByCollectionID = `-- name: GetSourcesByCollectionID :many
-SELECT id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at FROM sources WHERE collection_id = $1
+SELECT id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, created_at FROM sources WHERE collection_id = $1
 `
 
 func (q *Queries) GetSourcesByCollectionID(ctx context.Context, collectionID pgtype.UUID) ([]Source, error) {
@@ -144,7 +141,6 @@ func (q *Queries) GetSourcesByCollectionID(ctx context.Context, collectionID pgt
 			&i.OriginalUrl,
 			&i.S3Bucket,
 			&i.S3Key,
-			&i.ContentHash,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -158,7 +154,7 @@ func (q *Queries) GetSourcesByCollectionID(ctx context.Context, collectionID pgt
 }
 
 const getSourcesByUserID = `-- name: GetSourcesByUserID :many
-SELECT id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at FROM sources WHERE user_id = $1
+SELECT id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, created_at FROM sources WHERE user_id = $1
 `
 
 func (q *Queries) GetSourcesByUserID(ctx context.Context, userID pgtype.UUID) ([]Source, error) {
@@ -180,7 +176,6 @@ func (q *Queries) GetSourcesByUserID(ctx context.Context, userID pgtype.UUID) ([
 			&i.OriginalUrl,
 			&i.S3Bucket,
 			&i.S3Key,
-			&i.ContentHash,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -195,7 +190,7 @@ func (q *Queries) GetSourcesByUserID(ctx context.Context, userID pgtype.UUID) ([
 
 const updateSourceStatus = `-- name: UpdateSourceStatus :one
 UPDATE sources SET status = $2 WHERE id = $1
-RETURNING id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, content_hash, created_at
+RETURNING id, user_id, collection_id, type, status, title, original_url, s3_bucket, s3_key, created_at
 `
 
 type UpdateSourceStatusParams struct {
@@ -216,7 +211,6 @@ func (q *Queries) UpdateSourceStatus(ctx context.Context, arg UpdateSourceStatus
 		&i.OriginalUrl,
 		&i.S3Bucket,
 		&i.S3Key,
-		&i.ContentHash,
 		&i.CreatedAt,
 	)
 	return i, err

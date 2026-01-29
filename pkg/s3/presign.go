@@ -48,9 +48,7 @@ func (p *Presigner) GenerateUploadURL(ctx context.Context, key string, contentTy
 		Bucket:      aws.String(p.bucketName),
 		Key:         aws.String(key),
 		ContentType: aws.String(contentType),
-	}, func(opts *s3.PresignOptions) {
-		opts.Expires = p.expiry
-	})
+	}, s3.WithPresignExpires(p.expiry))
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate presigned upload URL: %w", err)
 	}

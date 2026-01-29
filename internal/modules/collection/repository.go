@@ -18,33 +18,25 @@ func NewRepository(db *db.Queries) *repository {
 }
 
 func (r *repository) GetCollectionsByUserID(ctx context.Context, userID pgtype.UUID) ([]db.Collection, error) {
-	collections, err := r.db.GetCollectionsByUserID(ctx, userID)
+	return r.db.GetCollectionsByUserID(ctx, userID)
+}
+
+func (r *repository) CreateCollection(ctx context.Context, args db.CreateCollectionParams) (*db.Collection, error) {
+	collection, err := r.db.CreateCollection(ctx, args)
 	if err != nil {
 		return nil, err
 	}
-	return collections, nil
+	return &collection, nil
 }
 
-func (r *repository) UpdateCollection(ctx context.Context, args db.UpdateCollectionParams) (db.Collection, error) {
+func (r *repository) UpdateCollection(ctx context.Context, args db.UpdateCollectionParams) (*db.Collection, error) {
 	collection, err := r.db.UpdateCollection(ctx, args)
 	if err != nil {
-		return db.Collection{}, err
+		return nil, err
 	}
-	return collection, nil
+	return &collection, nil
 }
 
 func (r *repository) DeleteCollection(ctx context.Context, id pgtype.UUID) error {
-	if err := r.db.DeleteCollection(ctx, id); err != nil {
-		return err
-	}
-	return nil
+	return r.db.DeleteCollection(ctx, id)
 }
-
-
-func (r *repository) CreateCollection(ctx context.Context, args db.CreateCollectionParams) (db.Collection, error) {
-	collection, err := r.db.CreateCollection(ctx, args)
-	if err != nil {
-		return db.Collection{}, err
-	}
-	return collection, nil
-} 

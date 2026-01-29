@@ -9,12 +9,10 @@ import (
 )
 
 type Config struct {
-	Port        string
-	DbUrl       string
-	Env         string
-	JwtSecret   string
-	LogLevel    string
-	RabbitMQUrl string
+	Port     string
+	DbUrl    string
+	Env      string
+	LogLevel string
 	// DigitalOcean Spaces Configuration
 	DORegion      string
 	DOEndpoint    string
@@ -27,6 +25,8 @@ type Config struct {
 	RedisAddr     string
 	RedisPassword string
 	RedisDB       int
+
+	RabbitMQ RabbitMQConfig
 }
 
 func LoadEnv() *Config {
@@ -39,9 +39,7 @@ func LoadEnv() *Config {
 		Port:          getkey("PORT", "8080"),
 		DbUrl:         getkey("DB_URL", "postgresql://postgres:postgres@localhost:5432/postgres?sslmode=disable"),
 		Env:           getkey("ENV", "development"),
-		JwtSecret:     getkey("JWT_SECRET", "secret"),
 		LogLevel:      getkey("LOG_LEVEL", "info"),
-		RabbitMQUrl:   getkey("RABBITMQ_URL", "amqp://guest:guest@localhost:5672"),
 		DORegion:      getkey("DO_REGION", "blr1"),
 		DOEndpoint:    getkey("DO_ENDPOINT", "https://blr1.digitaloceanspaces.com"),
 		DOAccessKey:   getkey("DO_ACCESS_KEY", ""),
@@ -53,6 +51,15 @@ func LoadEnv() *Config {
 		RedisAddr:     getkey("REDIS_ADDR", "localhost:6379"),
 		RedisPassword: getkey("REDIS_PASSWORD", ""),
 		RedisDB:       getEnvValue(getkey("REDIS_DB", "0"), 0),
+
+		RabbitMQ: RabbitMQConfig{
+			BrokerLink:   getkey("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),
+			ExchangeName: getkey("EXCHANGE_NAME", "scarter.embedding"),
+			ExchangeType: getkey("EXCHANGE_TYPE", "direct"),
+			QueueName:    getkey("QUEUE_NAME", "source.processor.queue"),
+			RoutingKey:   getkey("ROUTING_KEY", "source.process"),
+			WorkerCount:  getEnvValue("WORKER_COUNT", 5),
+		},
 	}
 
 }

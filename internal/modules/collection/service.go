@@ -2,6 +2,7 @@ package collection
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -9,8 +10,8 @@ import (
 
 type Repository interface {
 	GetCollectionsByUserID(ctx context.Context, userID pgtype.UUID) ([]db.Collection, error)
-	CreateCollection(ctx context.Context, args db.CreateCollectionParams) (db.Collection, error)
-	UpdateCollection(ctx context.Context, args db.UpdateCollectionParams) (db.Collection, error)
+	CreateCollection(ctx context.Context, args db.CreateCollectionParams) (*db.Collection, error)
+	UpdateCollection(ctx context.Context, args db.UpdateCollectionParams) (*db.Collection, error)
 	DeleteCollection(ctx context.Context, id pgtype.UUID) error
 }
 
@@ -27,15 +28,15 @@ func NewService(repository Repository) *service {
 func (s *service) GetCollectionsByUserID(ctx context.Context, userID string) ([]db.Collection, error) {
 	var uuid pgtype.UUID
 	if err := uuid.Scan(userID); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 	return s.repo.GetCollectionsByUserID(ctx, uuid)
 }
 
-func (s *service) CreateCollection(ctx context.Context, userID string, name string) (db.Collection, error) {
+func (s *service) CreateCollection(ctx context.Context, userID string, name string) (*db.Collection, error) {
 	var uuid pgtype.UUID
 	if err := uuid.Scan(userID); err != nil {
-		return db.Collection{}, err
+		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 
 	return s.repo.CreateCollection(ctx, db.CreateCollectionParams{
@@ -44,10 +45,10 @@ func (s *service) CreateCollection(ctx context.Context, userID string, name stri
 	})
 }
 
-func (s *service) UpdateCollection(ctx context.Context, id string, name string) (db.Collection, error) {
+func (s *service) UpdateCollection(ctx context.Context, id string, name string) (*db.Collection, error) {
 	var uuid pgtype.UUID
 	if err := uuid.Scan(id); err != nil {
-		return db.Collection{}, err
+		return nil, fmt.Errorf("invalid collection ID: %w", err)
 	}
 	return s.repo.UpdateCollection(ctx, db.UpdateCollectionParams{
 		ID:   uuid,
@@ -58,7 +59,7 @@ func (s *service) UpdateCollection(ctx context.Context, id string, name string) 
 func (s *service) DeleteCollection(ctx context.Context, id string) error {
 	var uuid pgtype.UUID
 	if err := uuid.Scan(id); err != nil {
-		return err
+		return fmt.Errorf("invalid collection ID: %w", err)
 	}
 	return s.repo.DeleteCollection(ctx, uuid)
 }

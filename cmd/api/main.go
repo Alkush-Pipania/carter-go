@@ -2,13 +2,15 @@ package main
 
 import (
 	"context"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/Alkush-Pipania/carter-go/config"
 	"github.com/Alkush-Pipania/carter-go/internal/app"
 	"github.com/Alkush-Pipania/carter-go/internal/server"
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
 	"github.com/Alkush-Pipania/carter-go/pkg/logger"
-	"github.com/Alkush-Pipania/carter-go/pkg/rabbitmq"
 	redisPkg "github.com/Alkush-Pipania/carter-go/pkg/redis"
 	"github.com/Alkush-Pipania/carter-go/pkg/s3"
 	"go.uber.org/zap"
@@ -28,36 +30,13 @@ func main() {
 		zap.String("log_level", cfg.LogLevel),
 	)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	dbConn := db.Init(ctx, cfg.DbUrl)
 	logger.Info("Database connected")
 
 	q := db.New(dbConn)
-
-	// RabbitMQ Setup
-	rmqConn, err := rabbitmq.NewConnection(
-		rabbitmq.Config{
-			URL: cfg.RabbitMQUrl,
-		},
-	)
-	if err != nil {
-		logger.Fatal("Failed to connect to RabbitMQ", zap.Error(err))
-	}
-	defer rmqConn.Close()
-	logger.Info("RabbitMQ connected")
-
-	producer, err := rabbitmq.NewProducer(rmqConn, rabbitmq.ProducerConfig{
-		Exchange:     "carter.embedding",
-		ExchangeType: "direct",
-		Durable:      true,
-	})
-	if err != nil {
-		logger.Fatal("Failed to create RabbitMQ producer", zap.Error(err))
-	}
-	defer producer.Close()
-	logger.Info("RabbitMQ producer created")
 
 	redisClient, err := redisPkg.New(ctx, redisPkg.Config{
 		Addr:     cfg.RedisAddr,
@@ -69,7 +48,6 @@ func main() {
 	}
 	logger.Info("Redis connected")
 
-	// S3 Setup (DigitalOcean Spaces)
 	s3Client, err := s3.NewClient(ctx, s3.ClientConfig{
 		Region:     cfg.DORegion,
 		Endpoint:   cfg.DOEndpoint,
@@ -89,16 +67,33 @@ func main() {
 	logger.Info("S3 presigner created",
 		zap.Int("expiry_minutes", cfg.PresignExpiry))
 
-	container := app.NewContainer(ctx, q, producer, presigner, redisClient)
+	container, err := app.NewContainer(ctx, q, presigner, redisClient, cfg)
+	if err != nil {
+		logger.Fatal("Failed to connect", zap.Error(err))
+
+	}
 
 	router := app.NewRouter(container)
 
-	srv := server.New(router, cfg.Port)
+	srv := server.New(router, cfg.Port, logger.Get())
+	srv.Start()
 
-	logger.Info("Server starting", zap.String("port", cfg.Port))
+	<-ctx.Done() // wait for the signal
+	logger.Info("shutdown signal received")
 
-	err = srv.ListenAndServe()
-	if err != nil {
-		logger.Fatal("Server failed to start", zap.Error(err))
+	// 1. stop the http server
+	if err := srv.Shutdown(context.Background()); err != nil {
+		logger.Error("server shutdown failed", zap.Error(err))
 	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := container.Shutdown(shutdownCtx); err != nil {
+		logger.Error("dependencies shutdown failed", zap.Error(err))
+	}
+
+	// Shutdown done
+	logger.Info("graceful shutdown complete")
+
 }
