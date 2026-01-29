@@ -1,0 +1,54 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Environment files (will be loaded via env_file)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+main
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+*_test.go
+*.test
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Logs
+*.log
+logs/
+
+# Docker files (don't copy into image)
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Migration files (optional - uncomment if you don't want them in the image)
+# migration/
+
+# SQLC files (optional - uncomment if you don't want them in the image)
+# sqlc/
