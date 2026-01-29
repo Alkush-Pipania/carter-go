@@ -1,0 +1,21 @@
+version: '3.8'
+
+# This override file is for production use with external services
+# Rename to docker-compose.override.yml to use, or use: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  carter-api:
+    environment:
+      # Override with external services
+      - DB_URL=${DB_URL}
+      - RABBITMQ_URL=${RABBITMQ_URL}
+      - REDIS_ADDR=${REDIS_ADDR}
+    depends_on: []  # Remove dependencies when using external services
+
+  # Comment out these services when using external PostgreSQL, Redis, and RabbitMQ
+  # postgres:
+  #   profiles: []  # Disable this service
+  # redis:
+  #   profiles: []  # Disable this service
+  # rabbitmq:
+  #   profiles: []  # Disable this service
