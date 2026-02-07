@@ -46,8 +46,24 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            mkdir -p /home/ec2-user/deploy
+
+            cat > /home/ec2-user/deploy/.env <<EOF
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            REDIS_URL=${{ secrets.REDIS_URL }}
+            RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
+            PORT=8080
+            EOF
+
+            chmod 600 /home/ec2-user/deploy/.env
+
             docker pull ${{ env.IMAGE_NAME }}:latest
             docker rm -f scrapper-api || true
-            docker run -d --name scrapper-api --network host \
-              -e PORT=8080 \
+
+            docker run -d --name scrapper-api \
+              --env-file /home/ec2-user/deploy/.env \
+              -p 127.0.0.1:8080:8080 \
+              --restart=always \
               ${{ env.IMAGE_NAME }}:latest
+              
+          
