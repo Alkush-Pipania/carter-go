@@ -49,10 +49,22 @@ jobs:
             mkdir -p /home/ec2-user/deploy
 
             cat > /home/ec2-user/deploy/.env <<EOF
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            REDIS_URL=${{ secrets.REDIS_URL }}
+            DB_URL=${{ secrets.DB_URL }}
+            REDIS_ADDR=${{ secrets.REDIS_ADDR }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            REDIS_DB=${{ secrets.REDIS_DB }}
             RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
+            EXCHANGE_NAME=${{ secrets.EXCHANGE_NAME }}
+            QUEUE_NAME=${{ secrets.QUEUE_NAME }}
+            WORKER_COUNT=${{ secrets.WORKER_COUNT }}
+            DO_REGION=${{ secrets.DO_REGION }}
+            DO_ENDPOINT=${{ secrets.DO_ENDPOINT }}
+            DO_ACCESS_KEY=${{ secrets.DO_ACCESS_KEY }}
+            DO_SECRET_KEY=${{ secrets.DO_SECRET_KEY }}
+            DO_BUCKET=${{ secrets.DO_BUCKET }}
             PORT=8080
+            ENV=production
+            LOG_LEVEL=info
             EOF
 
             chmod 600 /home/ec2-user/deploy/.env
