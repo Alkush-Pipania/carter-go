@@ -71,9 +71,12 @@ jobs:
             chmod 600 /home/ec2-user/deploy/.env
 
             docker pull ${{ env.IMAGE_NAME }}:latest
-            docker rm -f scrapper-api || true
+            if docker ps -a --format '{{.Names}}' | grep -q '^crud-api$'; then
+              docker rm -f crud-api
+            fi
+            docker rm -f crud-api || true
 
-            docker run -d --name scrapper-api \
+            docker run -d --name crud-api \
               --network scraper_scrapper-network \
               --env-file /home/ec2-user/deploy/.env \
               -p 127.0.0.1:8080:8080 \
