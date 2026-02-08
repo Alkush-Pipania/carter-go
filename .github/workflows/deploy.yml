@@ -51,9 +51,7 @@ jobs:
 
             cat > /home/ubuntu/deploy/.env <<EOF
             DB_URL=${{ secrets.DB_URL }}
-            REDIS_ADDR=${{ secrets.REDIS_ADDR }}
-            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
-            REDIS_DB=${{ secrets.REDIS_DB }}
+            REDIS_URL=${{ secrets.REDIS_URL }}
             RABBITMQ_URL=${{ secrets.RABBITMQ_URL }}
             EXCHANGE_NAME=${{ secrets.EXCHANGE_NAME }}
             QUEUE_NAME=${{ secrets.QUEUE_NAME }}

@@ -22,6 +22,7 @@ func NewConn(rmCfg *config.RabbitMQConfig) (*amqp091.Connection, error) {
 		if err == nil {
 			return conn, err
 		}
+		log.Printf(err.Error())
 		time.Sleep(2 * time.Second)
 		log.Printf("rabbitmq mq connection attempted %v", i+1)
 	}

@@ -22,9 +22,7 @@ type Config struct {
 	PresignExpiry int // in minutes
 
 	// redis
-	RedisAddr     string
-	RedisPassword string
-	RedisDB       int
+	RedisURL string
 
 	RabbitMQ RabbitMQConfig
 }
@@ -48,9 +46,7 @@ func LoadEnv() *Config {
 		PresignExpiry: getEnvValue(getkey("PRESIGN_EXPIRY", "15"), 15),
 
 		// redis
-		RedisAddr:     getkey("REDIS_ADDR", "localhost:6379"),
-		RedisPassword: getkey("REDIS_PASSWORD", ""),
-		RedisDB:       getEnvValue(getkey("REDIS_DB", "0"), 0),
+		RedisURL: getkey("REDIS_URL", ""),
 
 		RabbitMQ: RabbitMQConfig{
 			BrokerLink:   getkey("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),

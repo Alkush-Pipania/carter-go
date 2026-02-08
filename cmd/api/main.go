@@ -38,11 +38,7 @@ func main() {
 
 	q := db.New(dbConn)
 
-	redisClient, err := redisPkg.New(ctx, redisPkg.Config{
-		Addr:     cfg.RedisAddr,
-		Password: cfg.RedisPassword,
-		DB:       cfg.RedisDB,
-	})
+	redisClient, err := redisPkg.New(cfg.RedisURL)
 	if err != nil {
 		logger.Fatal("Failed to connect to Redis", zap.Error(err))
 	}
