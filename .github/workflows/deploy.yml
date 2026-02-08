@@ -70,6 +70,8 @@ jobs:
 
             chmod 600 /home/ubuntu/deploy/.env
 
+            docker network inspect scraper_scrapper-network >/dev/null 2>&1 || docker network create scraper_scrapper-network
+
             docker pull ${{ env.IMAGE_NAME }}:latest
             if docker ps -a --format '{{.Names}}' | grep -q '^crud-api$'; then
               docker rm -f crud-api
