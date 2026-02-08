@@ -74,7 +74,6 @@ jobs:
             if docker ps -a --format '{{.Names}}' | grep -q '^crud-api$'; then
               docker rm -f crud-api
             fi
-            docker rm -f crud-api || true
 
             docker run -d --name crud-api \
               --network scraper_scrapper-network \
