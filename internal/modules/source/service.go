@@ -6,14 +6,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Alkush-Pipania/carter-go/internal/middleware"
 	"github.com/Alkush-Pipania/carter-go/pkg/db"
 	"github.com/Alkush-Pipania/carter-go/pkg/rabbitmq"
 	"github.com/jackc/pgx/v5/pgtype"
-)
-
-const (
-	// RoutingKeySourceProcess is the routing key for source processing queue
-	RoutingKeySourceProcess = "source.process"
 )
 
 type Repository interface {
@@ -21,18 +17,19 @@ type Repository interface {
 	CreateSource(ctx context.Context, args db.CreateSourceParams) (db.Source, error)
 	CreateSourceContent(ctx context.Context, args db.CreateSourceContentParams) (db.SourceContent, error)
 	GetSourceByID(ctx context.Context, id pgtype.UUID) (db.Source, error)
-	DeleteSource(ctx context.Context, id pgtype.UUID) error
 }
 
 type service struct {
 	repo     Repository
 	producer *rabbitmq.Publisher
+	dltpbh   *rabbitmq.Publisher
 }
 
-func NewService(repo Repository, producer *rabbitmq.Publisher) Service {
+func NewService(repo Repository, producer *rabbitmq.Publisher, dltpbh *rabbitmq.Publisher) Service {
 	return &service{
 		repo:     repo,
 		producer: producer,
+		dltpbh:   dltpbh,
 	}
 }
 
@@ -168,10 +165,23 @@ func (s *service) GetSourceByID(ctx context.Context, sourceID string) (db.Source
 }
 
 // DeleteSource removes a source by ID
-func (s *service) DeleteSource(ctx context.Context, sourceID string) error {
+func (s *service) DeleteSource(ctx context.Context, sourceID string, sourceType string) error {
+	userID, _ := middleware.GetUserIDFromContext(ctx)
+
+	// Get the source to know its type for cleanup
 	var id pgtype.UUID
 	if err := id.Scan(sourceID); err != nil {
 		return fmt.Errorf("invalid source ID: %w", err)
 	}
-	return s.repo.DeleteSource(ctx, id)
+
+	msgBody, _ := json.Marshal(&SourceDeleteMessage{
+		SourceID: sourceID,
+		UserID:   userID,
+		Type:     sourceType,
+	})
+	err := s.dltpbh.Publish(ctx, msgBody)
+	if err != nil {
+		return err
+	}
+	return nil
 }

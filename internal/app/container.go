@@ -46,6 +46,10 @@ func NewContainer(ctx context.Context, db *db.Queries, presigner *s3.Presigner, 
 	if err != nil {
 		return nil, err
 	}
+	delPbh, err := rabbitmq.NewPublisher(rmqConn, cfg.RabbitMQ.ExchangeName, cfg.RabbitMQ.DeleteRoutingKey)
+	if err != nil {
+		return nil, err
+	}
 
 	userRepo := user.NewRepository(db)
 	userService := user.NewService(userRepo)
@@ -57,7 +61,7 @@ func NewContainer(ctx context.Context, db *db.Queries, presigner *s3.Presigner, 
 
 	// Source module with RabbitMQ producer for embedding queue
 	sourceRepo := source.NewRepository(db)
-	sourceService := source.NewService(sourceRepo, pbh)
+	sourceService := source.NewService(sourceRepo, pbh, delPbh)
 	sourceHandler := source.NewHandler(sourceService, validator)
 
 	// Upload module with S3 presigner and RabbitMQ producer for file uploads

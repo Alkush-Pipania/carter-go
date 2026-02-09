@@ -61,6 +61,8 @@ jobs:
             DO_ACCESS_KEY=${{ secrets.DO_ACCESS_KEY }}
             DO_SECRET_KEY=${{ secrets.DO_SECRET_KEY }}
             DO_BUCKET=${{ secrets.DO_BUCKET }}
+            DELETE_QUEUE_NAME=${{ secrets.DELETE_QUEUE_NAME }}
+            DELETE_ROUTING_KEY=${{ secrets.DELETE_ROUTING_KEY }}
             PORT=8080
             ENV=production
             LOG_LEVEL=info

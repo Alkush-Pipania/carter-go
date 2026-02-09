@@ -22,7 +22,6 @@ func NewConn(rmCfg *config.RabbitMQConfig) (*amqp091.Connection, error) {
 		if err == nil {
 			return conn, err
 		}
-		log.Printf(err.Error())
 		time.Sleep(2 * time.Second)
 		log.Printf("rabbitmq mq connection attempted %v", i+1)
 	}
@@ -58,6 +57,28 @@ func SetupTopology(conn *amqp091.Connection, rmqCfg *config.RabbitMQConfig) erro
 		rmqCfg.ExchangeName,
 		false, nil,
 	); err != nil {
+		return err
+	}
+	_, err = ch.QueueDeclare(
+		rmqCfg.DeleteQueueName, // "source_delete_queue"
+		true,                   // durable
+		false,                  // delete when unused
+		false,                  // exclusive
+		false,                  // no-wait
+		nil,                    // args
+	)
+	if err != nil {
+		return err
+	}
+
+	err = ch.QueueBind(
+		rmqCfg.DeleteQueueName,
+		rmqCfg.DeleteRoutingKey,
+		rmqCfg.ExchangeName,
+		false,
+		nil,
+	)
+	if err != nil {
 		return err
 	}
 	return nil
