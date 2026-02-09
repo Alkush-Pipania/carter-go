@@ -30,7 +30,3 @@ func (r *repository) CreateSourceContent(ctx context.Context, args db.CreateSour
 func (r *repository) GetSourceByID(ctx context.Context, id pgtype.UUID) (db.Source, error) {
 	return r.db.GetSourceByID(ctx, id)
 }
-
-func (r *repository) DeleteSource(ctx context.Context, id pgtype.UUID) error {
-	return r.db.DeleteSource(ctx, id)
-}

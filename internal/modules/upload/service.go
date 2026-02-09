@@ -15,11 +15,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const (
-	// RoutingKeySourceProcess is the routing key for source processing queue
-	RoutingKeySourceProcess = "source.process"
-)
-
 type Repository interface {
 	CreateSourceWithS3Key(ctx context.Context, args db.CreateSourceWithS3KeyParams) (db.Source, error)
 	UpdateSourceStatus(ctx context.Context, args db.UpdateSourceStatusParams) (db.Source, error)
@@ -151,7 +146,6 @@ func (s *service) ConfirmUpload(ctx context.Context, userID string, sourceID str
 
 	// Publish to RabbitMQ for processing (parsing, embedding, etc.)
 	if s.producer != nil {
-		log.Printf("[ConfirmUpload] Publishing to RabbitMQ with routing key: %s", RoutingKeySourceProcess)
 		msgBody, _ := json.Marshal(&SourceProcessingMessage{
 			SourceID: sourceID,
 			Type:     string(source.Type),

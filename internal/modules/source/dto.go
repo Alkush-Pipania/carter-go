@@ -31,3 +31,14 @@ type SourceProcessingMessage struct {
 	Type     string `json:"type"`
 	UserID   string `json:"user_id"`
 }
+
+type SourceDeleteMessage struct {
+	SourceID string `json:"source_id"`
+	UserID   string `json:"user_id"`
+	Type     string `json:"type"`
+}
+
+type DeleteSourceRequest struct {
+	SourceID string `json:"source_id" validate:"required,uuid"`
+	Type     string `json:"type"`
+}

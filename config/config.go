@@ -49,12 +49,14 @@ func LoadEnv() *Config {
 		RedisURL: getkey("REDIS_URL", ""),
 
 		RabbitMQ: RabbitMQConfig{
-			BrokerLink:   getkey("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),
-			ExchangeName: getkey("EXCHANGE_NAME", "scarter.embedding"),
-			ExchangeType: getkey("EXCHANGE_TYPE", "direct"),
-			QueueName:    getkey("QUEUE_NAME", "source.processor.queue"),
-			RoutingKey:   getkey("ROUTING_KEY", "source.process"),
-			WorkerCount:  getEnvValue("WORKER_COUNT", 5),
+			BrokerLink:       getkey("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),
+			ExchangeName:     getkey("EXCHANGE_NAME", "scarter.embedding"),
+			ExchangeType:     getkey("EXCHANGE_TYPE", "topic"),
+			QueueName:        getkey("QUEUE_NAME", "source.processor.queue"),
+			RoutingKey:       getkey("ROUTING_KEY", "source.process"),
+			WorkerCount:      getEnvValue("WORKER_COUNT", 5),
+			DeleteQueueName:  getkey("DELETE_QUEUE_NAME", "source.delete.queue"),
+			DeleteRoutingKey: getkey("DELETE_ROUTING_KEY", "source.delete"),
 		},
 	}
 

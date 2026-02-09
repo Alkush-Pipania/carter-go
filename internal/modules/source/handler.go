@@ -21,7 +21,7 @@ type Service interface {
 	GetSourcesByCollectionID(ctx context.Context, collectionID string) ([]db.Source, error)
 	CreateSource(ctx context.Context, userID string, req CreateSourceRequest) (db.Source, error)
 	GetSourceByID(ctx context.Context, sourceID string) (db.Source, error)
-	DeleteSource(ctx context.Context, sourceID string) error
+	DeleteSource(ctx context.Context, sourceID string, sourceType string) error
 }
 
 func NewHandler(svc Service, validator *validator.Validate) *Handler {
@@ -109,13 +109,12 @@ func (h *Handler) GetSourceByID(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) DeleteSource(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	sourceID := chi.URLParam(r, "id")
-	if sourceID == "" {
-		response.WriteError(w, http.StatusBadRequest, "Source ID is required")
-		return
+	var req DeleteSourceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid body")
 	}
 
-	if err := h.service.DeleteSource(ctx, sourceID); err != nil {
+	if err := h.service.DeleteSource(ctx, req.SourceID, req.Type); err != nil {
 		response.WriteError(w, http.StatusInternalServerError, "Failed to delete source")
 		return
 	}
